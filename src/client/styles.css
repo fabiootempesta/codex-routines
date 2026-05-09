@@ -1,16 +1,24 @@
 :root {
-  color-scheme: light;
-  --surface: oklch(98% 0.006 230);
-  --surface-2: oklch(94.5% 0.01 230);
-  --surface-3: oklch(90% 0.014 230);
-  --ink: oklch(24% 0.025 245);
-  --muted: oklch(49% 0.025 245);
-  --line: oklch(86% 0.014 230);
-  --accent: oklch(54% 0.15 153);
-  --accent-ink: oklch(98% 0.01 153);
-  --danger: oklch(57% 0.18 29);
-  --warn: oklch(64% 0.13 75);
-  --success: oklch(54% 0.14 153);
+  color-scheme: dark;
+  --surface: oklch(16.5% 0.012 172);
+  --surface-2: oklch(20.5% 0.012 172);
+  --surface-3: oklch(25% 0.013 172);
+  --surface-4: oklch(29.5% 0.014 172);
+  --ink: oklch(91% 0.012 172);
+  --muted: oklch(67% 0.014 172);
+  --line: oklch(32% 0.014 172);
+  --line-strong: oklch(40% 0.018 172);
+  --accent: oklch(69% 0.14 153);
+  --accent-ink: oklch(16% 0.026 153);
+  --accent-panel: oklch(25.5% 0.052 153);
+  --accent-line: oklch(49% 0.09 153);
+  --danger: oklch(68% 0.16 29);
+  --danger-panel: oklch(24% 0.052 29);
+  --danger-line: oklch(48% 0.09 29);
+  --warn: oklch(76% 0.13 75);
+  --warn-panel: oklch(27% 0.055 75);
+  --warn-line: oklch(53% 0.09 75);
+  --success: oklch(69% 0.135 153);
   --radius: 8px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-synthesis: none;
@@ -53,7 +61,7 @@ button:disabled {
   min-height: 76px;
   padding: 16px 22px 14px;
   border-bottom: 1px solid var(--line);
-  background: oklch(97% 0.008 220);
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -93,6 +101,21 @@ button:disabled {
 .topbar-actions {
   justify-content: flex-end;
   gap: 10px;
+}
+
+.system-pill {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .button-row {
@@ -172,7 +195,7 @@ button:disabled {
 .icon-button,
 .button {
   border: 1px solid var(--line);
-  background: oklch(96% 0.006 230);
+  background: var(--surface-3);
   color: var(--ink);
   border-radius: var(--radius);
   min-height: 36px;
@@ -190,8 +213,8 @@ button:disabled {
 
 .icon-button:hover,
 .button:hover {
-  background: oklch(93% 0.01 230);
-  border-color: oklch(78% 0.018 230);
+  background: var(--surface-4);
+  border-color: var(--line-strong);
 }
 
 .icon-button:focus-visible,
@@ -201,7 +224,7 @@ button:disabled {
 .task-confirm button:focus-visible,
 .segmented button:focus-visible,
 .mini-tabs button:focus-visible {
-  outline: 3px solid oklch(82% 0.06 153 / 0.55);
+  outline: 3px solid oklch(69% 0.14 153 / 0.38);
   outline-offset: 2px;
 }
 
@@ -223,21 +246,21 @@ button:disabled {
 }
 
 .button.ghost {
-  background: oklch(96% 0.006 230);
+  background: var(--surface-3);
   border-color: var(--line);
   color: var(--ink);
 }
 
 .button.danger {
   background: transparent;
-  border-color: oklch(78% 0.05 29);
+  border-color: var(--danger-line);
   color: var(--danger);
 }
 
 .button.danger.solid {
   background: var(--danger);
   border-color: var(--danger);
-  color: oklch(98% 0.006 29);
+  color: oklch(16% 0.03 29);
 }
 
 .task-list,
@@ -267,42 +290,42 @@ button:disabled {
 
 .task-row:hover,
 .execution-row:hover {
-  background: oklch(96% 0.008 230);
+  background: var(--surface-3);
 }
 
 .task-row.selected,
 .execution-row.selected {
-  background: oklch(97% 0.018 153);
-  border-color: oklch(80% 0.07 153);
+  background: var(--accent-panel);
+  border-color: var(--accent-line);
 }
 
 .task-row.enabled {
-  background: oklch(97.5% 0.015 153);
-  border-color: oklch(89% 0.04 153);
+  background: oklch(22% 0.032 153);
+  border-color: oklch(34% 0.05 153);
 }
 
 .task-row.paused {
-  background: oklch(95% 0.006 245);
-  border-color: oklch(84% 0.012 245);
+  background: var(--surface-2);
+  border-color: var(--line);
 }
 
 .task-row.paused .task-row-title {
-  color: oklch(44% 0.018 245);
+  color: var(--muted);
 }
 
 .task-row-presence {
   grid-template-columns: minmax(0, 1fr) 34px;
-  background: oklch(96.8% 0.01 230);
+  background: var(--surface-2);
 }
 
 .task-row-presence.enabled {
-  background: oklch(97.5% 0.015 153);
-  border-color: oklch(89% 0.04 153);
+  background: oklch(22% 0.032 153);
+  border-color: oklch(34% 0.05 153);
 }
 
 .task-row-presence.running {
-  background: oklch(97% 0.019 75);
-  border-color: oklch(80% 0.075 75);
+  background: var(--warn-panel);
+  border-color: var(--warn-line);
 }
 
 .task-select-presence {
@@ -341,13 +364,13 @@ button:disabled {
 }
 
 .run-presence.running {
-  border-color: oklch(78% 0.075 75);
-  background: oklch(91.5% 0.06 75);
-  color: oklch(39% 0.085 75);
+  border-color: var(--warn-line);
+  background: oklch(32% 0.06 75);
+  color: oklch(86% 0.08 75);
 }
 
 .run-presence.idle {
-  background: oklch(98.5% 0.006 230);
+  background: var(--surface-3);
   color: var(--muted);
 }
 
@@ -369,7 +392,7 @@ button:disabled {
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: oklch(55% 0.05 29);
+  color: var(--danger);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -377,8 +400,8 @@ button:disabled {
 }
 
 .task-delete:hover {
-  border-color: oklch(82% 0.05 29);
-  background: oklch(96% 0.025 29);
+  border-color: var(--danger-line);
+  background: var(--danger-panel);
   opacity: 1;
 }
 
@@ -386,9 +409,9 @@ button:disabled {
   grid-column: 1 / -1;
   margin: 0 8px 8px;
   padding: 8px;
-  border: 1px solid oklch(84% 0.045 29);
+  border: 1px solid var(--danger-line);
   border-radius: 7px;
-  background: oklch(97% 0.018 29);
+  background: var(--danger-panel);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
@@ -396,16 +419,16 @@ button:disabled {
 }
 
 .task-confirm span {
-  color: oklch(42% 0.07 29);
+  color: oklch(86% 0.08 29);
   font-size: 0.76rem;
   font-weight: 800;
 }
 
 .task-confirm button {
   min-height: 30px;
-  border: 1px solid oklch(82% 0.045 29);
+  border: 1px solid var(--danger-line);
   border-radius: 7px;
-  background: oklch(99% 0.004 230);
+  background: var(--surface-3);
   color: var(--ink);
   padding: 0 8px;
   font-size: 0.75rem;
@@ -415,7 +438,7 @@ button:disabled {
 .task-confirm button:last-child {
   background: var(--danger);
   border-color: var(--danger);
-  color: oklch(98% 0.006 29);
+  color: oklch(16% 0.03 29);
 }
 
 .task-row-title {
@@ -451,13 +474,13 @@ button:disabled {
 }
 
 .task-state.enabled {
-  background: oklch(92% 0.045 153);
-  color: oklch(36% 0.12 153);
+  background: oklch(31% 0.06 153);
+  color: oklch(84% 0.095 153);
 }
 
 .task-state.paused {
-  background: oklch(90% 0.012 245);
-  color: oklch(42% 0.025 245);
+  background: var(--surface-3);
+  color: var(--muted);
 }
 
 .form-grid {
@@ -469,7 +492,7 @@ button:disabled {
 .run-summary {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: oklch(97.2% 0.008 230);
+  background: var(--surface-2);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
@@ -510,7 +533,7 @@ button:disabled {
 }
 
 .summary-item.success strong {
-  color: oklch(37% 0.12 153);
+  color: var(--success);
 }
 
 .summary-item.muted strong {
@@ -530,7 +553,7 @@ button:disabled {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
-  background: oklch(95.8% 0.009 230);
+  background: oklch(18.8% 0.012 172);
 }
 
 .inline-confirm {
@@ -541,7 +564,7 @@ button:disabled {
 }
 
 .inline-confirm span {
-  color: oklch(42% 0.07 29);
+  color: oklch(86% 0.08 29);
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -574,7 +597,7 @@ button:disabled {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: oklch(99% 0.004 230);
+  background: var(--surface-2);
   color: var(--ink);
   outline: none;
 }
@@ -589,7 +612,7 @@ button:disabled {
 .field select:focus,
 .markdown-shell textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px oklch(82% 0.06 153 / 0.35);
+  box-shadow: 0 0 0 3px oklch(69% 0.14 153 / 0.2);
 }
 
 .toggle-field {
@@ -602,7 +625,7 @@ button:disabled {
   align-items: center;
   justify-content: start;
   gap: 9px;
-  background: oklch(99% 0.004 230);
+  background: var(--surface-2);
 }
 
 .toggle-field input {
@@ -614,7 +637,7 @@ button:disabled {
 .schedule-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: oklch(97% 0.006 230);
+  background: var(--surface-2);
   overflow: hidden;
 }
 
@@ -639,7 +662,7 @@ button:disabled {
 
 .segmented button.active,
 .mini-tabs button.active {
-  background: oklch(99% 0.004 230);
+  background: var(--surface-4);
   color: var(--ink);
   box-shadow: inset 0 0 0 1px var(--line);
 }
@@ -670,7 +693,7 @@ button:disabled {
   min-height: 430px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: oklch(99% 0.004 230);
+  background: var(--surface-2);
   overflow: hidden;
   display: grid;
   grid-template-rows: auto minmax(330px, 1fr);
@@ -697,7 +720,7 @@ button:disabled {
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: oklch(18.8% 0.012 172);
 }
 
 .markdown-shell textarea {
@@ -783,34 +806,34 @@ button:disabled {
 
 .status-dot.success,
 .badge.success {
-  background: oklch(94% 0.035 153);
-  color: oklch(38% 0.12 153);
+  background: oklch(30% 0.06 153);
+  color: oklch(84% 0.095 153);
 }
 
 .status-dot.failed,
 .badge.failed {
-  background: oklch(94% 0.035 29);
+  background: var(--danger-panel);
   color: var(--danger);
 }
 
 .status-dot.stale,
 .badge.stale {
-  background: oklch(95% 0.04 75);
-  color: oklch(38% 0.1 75);
+  background: var(--warn-panel);
+  color: oklch(86% 0.08 75);
 }
 
 .status-dot.running,
 .badge.running {
-  background: oklch(95% 0.04 75);
-  color: oklch(38% 0.1 75);
+  background: var(--warn-panel);
+  color: oklch(86% 0.08 75);
 }
 
 .log-detail {
   min-height: 0;
   padding: 12px;
   border-top: 1px solid var(--line);
-  background: oklch(18% 0.024 245);
-  color: oklch(94% 0.01 245);
+  background: oklch(13.5% 0.014 172);
+  color: oklch(91% 0.012 172);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
@@ -819,7 +842,7 @@ button:disabled {
 .log-meta {
   justify-content: space-between;
   gap: 10px;
-  color: oklch(76% 0.016 245);
+  color: var(--muted);
   font-size: 0.78rem;
 }
 
@@ -848,15 +871,15 @@ button:disabled {
 .log-detail-reader {
   position: fixed;
   z-index: 40;
-  top: 104px;
-  right: 24px;
-  bottom: 24px;
+  top: 88px;
+  right: 18px;
+  bottom: 18px;
   left: 308px;
   padding: 0;
   gap: 0;
-  border: 1px solid oklch(34% 0.028 245);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  box-shadow: 0 22px 70px oklch(18% 0.024 245 / 0.22);
+  box-shadow: 0 22px 70px oklch(8% 0.014 172 / 0.46);
   overflow: hidden;
   grid-template-columns: 240px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -865,8 +888,8 @@ button:disabled {
 .log-reader-rail {
   min-height: 0;
   padding: 14px;
-  border-right: 1px solid oklch(30% 0.024 245);
-  background: oklch(21% 0.022 245);
+  border-right: 1px solid var(--line);
+  background: oklch(17% 0.014 172);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
@@ -890,24 +913,24 @@ button:disabled {
 }
 
 .log-reader-head span {
-  color: oklch(72% 0.016 245);
+  color: var(--muted);
   font-size: 0.74rem;
 }
 
 .log-close-button {
   width: 32px;
   height: 32px;
-  border: 1px solid oklch(38% 0.026 245);
+  border: 1px solid var(--line-strong);
   border-radius: 7px;
-  background: oklch(24% 0.024 245);
-  color: oklch(89% 0.012 245);
+  background: var(--surface-3);
+  color: var(--ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .log-close-button:hover {
-  background: oklch(28% 0.026 245);
+  background: var(--surface-4);
 }
 
 .log-run-list {
@@ -923,7 +946,7 @@ button:disabled {
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: oklch(88% 0.012 245);
+  color: var(--ink);
   padding: 9px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -932,12 +955,12 @@ button:disabled {
 }
 
 .log-run-item:hover {
-  background: oklch(25% 0.024 245);
+  background: var(--surface-3);
 }
 
 .log-run-item.selected {
-  border-color: oklch(52% 0.055 245);
-  background: oklch(27% 0.026 245);
+  border-color: var(--accent-line);
+  background: var(--accent-panel);
 }
 
 .log-run-item strong,
@@ -954,18 +977,18 @@ button:disabled {
 
 .log-run-item small {
   margin-top: 2px;
-  color: oklch(72% 0.016 245);
+  color: var(--muted);
   font-size: 0.72rem;
 }
 
 .log-reader-current {
   padding-top: 10px;
-  border-top: 1px solid oklch(30% 0.024 245);
+  border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: oklch(74% 0.018 245);
+  color: var(--muted);
   font-size: 0.74rem;
 }
 
@@ -979,8 +1002,8 @@ button:disabled {
 .log-reader-toolbar {
   min-height: 52px;
   padding: 0 18px;
-  border-bottom: 1px solid oklch(30% 0.024 245);
-  background: oklch(19.5% 0.024 245);
+  border-bottom: 1px solid var(--line);
+  background: oklch(15.5% 0.014 172);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -997,26 +1020,26 @@ button:disabled {
 }
 
 .log-reader-title span {
-  color: oklch(72% 0.016 245);
+  color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.35;
 }
 
 .resume-button {
   min-height: 34px;
-  background: oklch(88% 0.08 75);
-  border-color: oklch(78% 0.08 75);
-  color: oklch(25% 0.075 75);
+  background: oklch(74% 0.12 75);
+  border-color: oklch(74% 0.12 75);
+  color: oklch(18% 0.04 75);
 }
 
 .resume-button:hover {
-  background: oklch(84% 0.1 75);
+  background: oklch(80% 0.12 75);
 }
 
 .recovery-banner {
   min-width: 0;
   padding: 12px 18px;
-  border-bottom: 1px solid oklch(31% 0.028 245);
+  border-bottom: 1px solid var(--warn-line);
   background: oklch(24% 0.033 75);
   color: oklch(91% 0.045 75);
   display: grid;
@@ -1044,7 +1067,7 @@ button:disabled {
 .recovery-banner code {
   padding: 1px 5px;
   border-radius: 5px;
-  background: oklch(18% 0.024 245 / 0.45);
+  background: oklch(13.5% 0.014 172 / 0.55);
   color: oklch(94% 0.035 75);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 0.72rem;
@@ -1066,10 +1089,10 @@ button:disabled {
 .error-pill {
   max-width: min(44vw, 560px);
   padding: 8px 10px;
-  border: 1px solid oklch(82% 0.06 29);
+  border: 1px solid var(--danger-line);
   border-radius: 999px;
   color: var(--danger);
-  background: oklch(96% 0.025 29);
+  background: var(--danger-panel);
   font-size: 0.82rem;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -14,7 +14,7 @@ The product schedules and runs Codex CLI tasks from a chosen working directory, 
 
 ## Brand Personality
 
-Quiet, operational, precise. The interface should feel like a focused control room for local automation: confident enough to handle dangerous Codex execution, but restrained enough that the prompt and logs remain the center of attention.
+Quiet, operational, precise. The interface should feel like a focused dark control room for local automation: confident enough to handle dangerous Codex execution, but restrained enough that the prompt and logs remain the center of attention.
 
 ## Anti-references
 

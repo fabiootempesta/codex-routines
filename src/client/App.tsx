@@ -5,6 +5,7 @@ import {
   CalendarClock,
   Check,
   Clock3,
+  Database,
   FileText,
   Loader2,
   Play,
@@ -66,6 +67,10 @@ export default function App() {
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; source: "editor" | "sidebar" } | null>(null);
   const logPreRef = useRef<HTMLPreElement | null>(null);
   const shouldStickToLogEndRef = useRef(true);
+  const draftSourceRef = useRef<{ taskId: string | null; fingerprint: string | null }>({
+    taskId: null,
+    fingerprint: null
+  });
 
   const selectedTask = useMemo(
     () => state.tasks.find((task) => task.id === selectedTaskId) ?? null,
@@ -84,6 +89,16 @@ export default function App() {
   const isSelectedTaskRunning = Boolean(selectedTaskRunningExecution);
   const canContinueSelectedExecution = isContinuableExecution(selectedExecution);
   const selectedExecutionNeedsRecovery = selectedExecution?.status === "stale" || canContinueSelectedExecution;
+  const hasUnsavedChanges = useMemo(
+    () =>
+      Boolean(
+        draft.id &&
+          draftSourceRef.current.taskId === draft.id &&
+          draftSourceRef.current.fingerprint !== null &&
+          fingerprintDraft(draft) !== draftSourceRef.current.fingerprint
+      ),
+    [draft]
+  );
 
   useEffect(() => {
     void bootstrap();
@@ -128,11 +143,27 @@ export default function App() {
 
   useEffect(() => {
     if (selectedTask) {
-      setDraft(taskToDraft(selectedTask));
+      setDraft((current) => {
+        const nextDraft = taskToDraft(selectedTask);
+        const nextFingerprint = fingerprintDraft(nextDraft);
+        const hasLocalEdits =
+          current.id === selectedTask.id &&
+          draftSourceRef.current.taskId === selectedTask.id &&
+          draftSourceRef.current.fingerprint !== null &&
+          fingerprintDraft(current) !== draftSourceRef.current.fingerprint;
+
+        if (hasLocalEdits) {
+          return current;
+        }
+
+        draftSourceRef.current = { taskId: selectedTask.id, fingerprint: nextFingerprint };
+        return nextDraft;
+      });
       return;
     }
 
     if (selectedTaskId === "new") {
+      draftSourceRef.current = { taskId: null, fingerprint: null };
       setDraft(createEmptyDraft(homeDir));
     }
   }, [homeDir, selectedTask, selectedTaskId]);
@@ -215,6 +246,9 @@ export default function App() {
             body: JSON.stringify(payload)
           });
 
+      const savedDraft = taskToDraft(response.task);
+      draftSourceRef.current = { taskId: response.task.id, fingerprint: fingerprintDraft(savedDraft) };
+      setDraft(savedDraft);
       setSelectedTaskId(response.task.id);
       await refresh(false, response.task.id);
     } catch (requestError) {
@@ -348,7 +382,22 @@ export default function App() {
           <p className="eyebrow">local automation</p>
           <h1>Codex Routines</h1>
         </div>
-        <div className="topbar-actions">{error && <span className="error-pill">{error}</span>}</div>
+        <div className="topbar-actions">
+          {error ? (
+            <span className="error-pill">{error}</span>
+          ) : (
+            <>
+              <span className="system-pill">
+                <Database size={14} />
+                {state.tasks.length} tasks
+              </span>
+              <span className="system-pill">
+                <Clock3 size={14} />
+                refresh 4s
+              </span>
+            </>
+          )}
+        </div>
       </header>
 
       <main className={`workspace ${isLogsOpen ? "logs-open" : ""}`}>
@@ -366,6 +415,7 @@ export default function App() {
                 setSelectedTaskId("new");
                 setSelectedExecutionId(null);
                 setIsLogsOpen(false);
+                draftSourceRef.current = { taskId: null, fingerprint: null };
                 setState((current) => ({ ...current, executions: [] }));
               }}
             >
@@ -434,7 +484,7 @@ export default function App() {
           <div className="pane-heading editor-heading">
             <div>
               <h2>{draft.id ? "Edit routine" : "New routine"}</h2>
-              <span>{draft.id ? "Saved configuration" : "Local draft"}</span>
+              <span>{draft.id ? (hasUnsavedChanges ? "Unsaved changes" : "Saved configuration") : "Local draft"}</span>
             </div>
             <div className="button-row">
               <button className="button ghost" type="button" disabled={!draft.id || isRunning || isSelectedTaskRunning} onClick={runSelectedTask}>
@@ -857,6 +907,10 @@ function normalizeDraft(draft: DraftTask): CreateTaskInput {
     schedule: draft.schedule,
     enabled: draft.enabled
   };
+}
+
+function fingerprintDraft(draft: DraftTask): string {
+  return JSON.stringify(normalizeDraft(draft));
 }
 
 async function api<T>(path: string, init: RequestInit = {}): Promise<T> {

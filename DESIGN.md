@@ -2,15 +2,15 @@
 name: Codex Routines
 description: Local command center for scheduled Codex CLI routines.
 colors:
-  surface: "oklch(98% 0.006 230)"
-  surface-muted: "oklch(94.5% 0.01 230)"
-  surface-raised: "oklch(99% 0.004 230)"
-  ink: "oklch(24% 0.025 245)"
-  muted: "oklch(49% 0.025 245)"
-  line: "oklch(86% 0.014 230)"
-  accent: "oklch(54% 0.15 153)"
-  danger: "oklch(57% 0.18 29)"
-  warning: "oklch(64% 0.13 75)"
+  surface: "oklch(16.5% 0.012 172)"
+  surface-muted: "oklch(20.5% 0.012 172)"
+  surface-raised: "oklch(25% 0.013 172)"
+  ink: "oklch(91% 0.012 172)"
+  muted: "oklch(67% 0.014 172)"
+  line: "oklch(32% 0.014 172)"
+  accent: "oklch(69% 0.14 153)"
+  danger: "oklch(68% 0.16 29)"
+  warning: "oklch(76% 0.13 75)"
 typography:
   title:
     fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
@@ -71,34 +71,34 @@ components:
 
 **Creative North Star: "The Local Runbook Console"**
 
-Codex Routines is a restrained product interface for repeatable local automation. It should feel closer to a precise operations tool than a generic AI dashboard: dense, calm, and explicit about state. The system rejects marketing gloss, decorative AI styling, and over-composed hero surfaces.
+Codex Routines is a dark-only product interface for repeatable local automation. It should feel closer to a precise operations tool than a generic AI dashboard: dense, calm, and explicit about state. The system rejects marketing gloss, decorative AI styling, and over-composed hero surfaces.
 
 The primary experience is task authoring and monitoring. Structure should make the currently selected routine, its schedule, its working directory, and its execution history easy to connect without forcing the user into separate pages.
 
 **Key Characteristics:**
 - Compact app shell with persistent task navigation.
-- Quiet neutral surfaces with a single operational green accent.
+- Dark graphite surfaces with a single operational green accent.
 - Logs and command output appear on demand, not as default screen noise.
 - Destructive actions are visible but visually subordinate until confirmation.
 
 ## 2. Colors
 
-The palette is a cool operational neutral system with one restrained green accent and clear semantic danger/warning states.
+The palette is a dark operational neutral system with one restrained green accent and clear semantic danger/warning states. The app does not offer light mode.
 
 ### Primary
-- **Run Green** (`oklch(54% 0.15 153)`): primary actions, selected state, active status, and focus rings.
+- **Run Green** (`oklch(69% 0.14 153)`): primary actions, selected state, active status, and focus rings.
 
 ### Neutral
-- **Work Surface** (`oklch(98% 0.006 230)`): main canvas and editor background.
-- **Panel Mist** (`oklch(94.5% 0.01 230)`): sidebars, logs list, and secondary panels.
-- **Raised Paper** (`oklch(99% 0.004 230)`): inputs, editor surfaces, selected tab fills.
-- **Command Ink** (`oklch(24% 0.025 245)`): primary text.
-- **Muted Slate** (`oklch(49% 0.025 245)`): metadata, labels, secondary copy.
-- **Fine Divider** (`oklch(86% 0.014 230)`): borders and separators.
+- **Work Surface** (`oklch(16.5% 0.012 172)`): main canvas and editor background.
+- **Panel Graphite** (`oklch(20.5% 0.012 172)`): sidebars, logs list, and secondary panels.
+- **Raised Graphite** (`oklch(25% 0.013 172)`): inputs, editor surfaces, selected tab fills.
+- **Command Ink** (`oklch(91% 0.012 172)`): primary text.
+- **Muted Nickel** (`oklch(67% 0.014 172)`): metadata, labels, secondary copy.
+- **Fine Divider** (`oklch(32% 0.014 172)`): borders and separators.
 
 ### Tertiary
-- **Delete Red** (`oklch(57% 0.18 29)`): destructive actions and failed execution status.
-- **Pending Amber** (`oklch(64% 0.13 75)`): running and waiting states.
+- **Delete Red** (`oklch(68% 0.16 29)`): destructive actions and failed execution status.
+- **Pending Amber** (`oklch(76% 0.13 75)`): running and waiting states.
 
 ### Named Rules
 **The One Accent Rule.** Green is reserved for action, active state, and selection. Do not use green as background decoration.
@@ -132,7 +132,7 @@ The system is flat by default and uses tonal layering, borders, and spacing for 
 
 ### Buttons
 - **Shape:** compact rounded rectangle, 8px radius.
-- **Primary:** green fill, white-tinted text, 36px minimum height.
+- **Primary:** green fill, dark-tinted text, 36px minimum height.
 - **Ghost:** neutral fill with border for secondary actions.
 - **Danger:** red text and red-tinted border, never full red unless confirming deletion.
 - **Hover / Focus:** subtle tonal shift and visible focus ring using Run Green.
@@ -149,7 +149,7 @@ The system is flat by default and uses tonal layering, borders, and spacing for 
 - **Internal Padding:** 12px to 16px, with 4pt scale increments.
 
 ### Inputs / Fields
-- **Style:** raised neutral background, 1px border, 8px radius.
+- **Style:** raised dark neutral background, 1px border, 8px radius.
 - **Focus:** green border and soft green outline.
 - **Disabled:** lower opacity and muted text, with cursor feedback.
 
