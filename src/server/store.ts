@@ -188,8 +188,8 @@ export class JsonStore {
         if (execution.status !== "running" || activeExecutionIds.has(execution.id)) continue;
 
         const reason = execution.processId
-          ? `Execucao orfa: a plataforma nao esta mais acompanhando o processo ${execution.processId}.`
-          : "Execucao orfa: a plataforma reiniciou ou perdeu o processo Codex dessa execucao.";
+          ? `Orphaned execution: the platform is no longer tracking process ${execution.processId}.`
+          : "Orphaned execution: the platform restarted or lost this execution's Codex process.";
 
         execution.status = "stale";
         execution.finishedAt = staleAt;
@@ -268,17 +268,17 @@ export class JsonStore {
 }
 
 export function createStorePath(root = process.cwd()): string {
-  return process.env.CODEX_ROTINAS_DB ?? path.join(root, "data", "db.json");
+  return process.env.CODEX_ROUTINES_DB ?? path.join(root, "data", "db.json");
 }
 
 export async function assertDirectory(directory: string): Promise<void> {
   if (!path.isAbsolute(directory)) {
-    throw new Error("O caminho precisa ser absoluto.");
+    throw new Error("Path must be absolute.");
   }
 
   const result = await stat(directory);
   if (!result.isDirectory()) {
-    throw new Error("O caminho precisa apontar para uma pasta.");
+    throw new Error("Path must point to a directory.");
   }
 }
 

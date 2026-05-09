@@ -15,7 +15,7 @@ export function getNextRunAt(schedule: TaskSchedule, from = new Date()): Date | 
 
   if (schedule.type === "interval") {
     if (!Number.isFinite(schedule.everyMinutes) || schedule.everyMinutes < 1) {
-      throw new Error("Intervalo precisa ser de pelo menos 1 minuto.");
+      throw new Error("Interval must be at least 1 minute.");
     }
 
     return new Date(from.getTime() + schedule.everyMinutes * 60_000);
@@ -28,7 +28,7 @@ export function getNextRunAt(schedule: TaskSchedule, from = new Date()): Date | 
 
   if (schedule.type === "weekly") {
     if (!Number.isInteger(schedule.dayOfWeek) || schedule.dayOfWeek < 0 || schedule.dayOfWeek > 6) {
-      throw new Error("Dia da semana precisa ficar entre 0 e 6.");
+      throw new Error("Weekday must be between 0 and 6.");
     }
 
     const [hours, minutes] = parseTime(schedule.time);
@@ -43,10 +43,10 @@ export function getNextRunAt(schedule: TaskSchedule, from = new Date()): Date | 
 
 export function describeSchedule(schedule: TaskSchedule): string {
   if (schedule.type === "manual") return "manual";
-  if (schedule.type === "once") return `uma vez em ${schedule.runAt}`;
-  if (schedule.type === "interval") return `a cada ${schedule.everyMinutes} min`;
-  if (schedule.type === "daily") return `diario as ${schedule.time}`;
-  if (schedule.type === "weekly") return `semanal dia ${schedule.dayOfWeek} as ${schedule.time}`;
+  if (schedule.type === "once") return `once at ${schedule.runAt}`;
+  if (schedule.type === "interval") return `every ${schedule.everyMinutes} min`;
+  if (schedule.type === "daily") return `daily at ${schedule.time}`;
+  if (schedule.type === "weekly") return `weekly on day ${schedule.dayOfWeek} at ${schedule.time}`;
   return `cron ${schedule.expression}`;
 }
 
@@ -54,7 +54,7 @@ function parseTime(time: string): [number, number] {
   const match = time.match(timePattern);
 
   if (!match) {
-    throw new Error("Horario precisa estar no formato HH:mm.");
+    throw new Error("Time must use HH:mm format.");
   }
 
   return [Number(match[1]), Number(match[2])];

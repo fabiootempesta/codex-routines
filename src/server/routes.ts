@@ -61,7 +61,7 @@ export function createApiRouter(store: JsonStore, scheduler: Scheduler): Router 
       const task = await store.updateTask(request.params.id, payload);
 
       if (!task) {
-        response.status(404).json({ error: "Tarefa nao encontrada." });
+        response.status(404).json({ error: "Task not found." });
         return;
       }
 
@@ -75,7 +75,7 @@ export function createApiRouter(store: JsonStore, scheduler: Scheduler): Router 
       const deleted = await store.deleteTask(request.params.id);
 
       if (!deleted) {
-        response.status(404).json({ error: "Tarefa nao encontrada." });
+        response.status(404).json({ error: "Task not found." });
         return;
       }
 
@@ -100,7 +100,7 @@ export function createApiRouter(store: JsonStore, scheduler: Scheduler): Router 
     const execution = store.getExecution(request.params.id);
 
     if (!execution) {
-      response.status(404).json({ error: "Execucao nao encontrada." });
+      response.status(404).json({ error: "Execution not found." });
       return;
     }
 
@@ -117,7 +117,7 @@ export function createApiRouter(store: JsonStore, scheduler: Scheduler): Router 
 
   router.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) {
-      response.status(400).json({ error: "Dados invalidos.", details: error.flatten() });
+      response.status(400).json({ error: "Invalid data.", details: error.flatten() });
       return;
     }
 

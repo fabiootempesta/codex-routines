@@ -23,7 +23,7 @@ await serveClient(app);
 
 const server = app.listen(port, host, () => {
   scheduler.start();
-  console.log("Codex Rotinas ouvindo em:");
+  console.log("Codex Routines listening at:");
   for (const url of getNetworkUrls(port)) {
     console.log(`- ${url}`);
   }
@@ -48,7 +48,7 @@ async function serveClient(application: express.Express): Promise<void> {
       response
         .status(503)
         .type("text/plain")
-        .send("Client ainda nao foi buildado. Rode npm run build antes de npm start.");
+        .send("Client has not been built yet. Run npm run build before npm start.");
     });
     return;
   }

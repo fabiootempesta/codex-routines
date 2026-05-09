@@ -1,5 +1,5 @@
 ---
-name: Codex Rotinas
+name: Codex Routines
 description: Local command center for scheduled Codex CLI routines.
 colors:
   surface: "oklch(98% 0.006 230)"
@@ -65,13 +65,13 @@ components:
     height: "39px"
 ---
 
-# Design System: Codex Rotinas
+# Design System: Codex Routines
 
 ## 1. Overview
 
 **Creative North Star: "The Local Runbook Console"**
 
-Codex Rotinas is a restrained product interface for repeatable local automation. It should feel closer to a precise operations tool than a generic AI dashboard: dense, calm, and explicit about state. The system rejects marketing gloss, decorative AI styling, and over-composed hero surfaces.
+Codex Routines is a restrained product interface for repeatable local automation. It should feel closer to a precise operations tool than a generic AI dashboard: dense, calm, and explicit about state. The system rejects marketing gloss, decorative AI styling, and over-composed hero surfaces.
 
 The primary experience is task authoring and monitoring. Structure should make the currently selected routine, its schedule, its working directory, and its execution history easy to connect without forcing the user into separate pages.
 

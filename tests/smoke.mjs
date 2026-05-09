@@ -35,28 +35,28 @@ async function checkDesktop() {
 
   await page.goto(baseUrl);
   await page.waitForLoadState("networkidle");
-  await page.getByText("Codex Rotinas").first().waitFor();
+  await page.getByText("Codex Routines").first().waitFor();
   await assertNoRefreshButton(page);
   await assertLogsHidden(page);
-  await page.getByTitle("Nova tarefa").click();
-  await page.getByLabel("Nome").fill(smokeTitle);
-  await page.getByLabel("Caminho de execucao").fill(smokeCwd);
-  await page.locator("textarea").fill("# Smoke\n\nListe o diretorio atual.");
+  await page.getByTitle("New task").click();
+  await page.getByLabel("Name").fill(smokeTitle);
+  await page.getByLabel("Execution path").fill(smokeCwd);
+  await page.locator("textarea").fill("# Smoke\n\nList the current directory.");
 
   await Promise.all([
     page.waitForResponse((response) => response.url().includes("/api/tasks") && response.request().method() === "POST"),
-    page.getByRole("button", { name: /Salvar/ }).click()
+    page.getByRole("button", { name: /Save/ }).click()
   ]);
 
   await page.getByRole("button", { name: new RegExp(`^${escapeRegExp(smokeTitle)}`) }).waitFor();
-  await page.getByText("Resumo da rotina").waitFor({ state: "hidden" }).catch(() => undefined);
-  await page.getByLabel("Resumo da rotina").getByText("Ativa").waitFor();
-  await page.getByRole("button", { name: /Excluir rotina/ }).click();
-  await page.getByText("Confirmar exclusao?").waitFor();
-  await page.getByRole("button", { name: "Cancelar" }).click();
-  await page.getByRole("button", { name: /Logs da tarefa/ }).click();
+  await page.getByText("Routine summary").waitFor({ state: "hidden" }).catch(() => undefined);
+  await page.getByLabel("Routine summary").getByText("Active").waitFor();
+  await page.getByRole("button", { name: /Delete routine/ }).click();
+  await page.getByText("Confirm deletion?").waitFor();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: /Task logs/ }).click();
   await page.getByLabel("Logs").waitFor();
-  await page.getByRole("button", { name: /Fechar logs/ }).first().click();
+  await page.getByRole("button", { name: /Close logs/ }).first().click();
   await assertLogsHidden(page);
   await page.screenshot({ path: path.join(runtimeDir, "smoke-desktop.png"), fullPage: true });
 
@@ -71,25 +71,25 @@ async function checkMobile() {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
   await page.goto(baseUrl);
   await page.waitForLoadState("networkidle");
-  await page.getByText("Codex Rotinas").first().waitFor();
+  await page.getByText("Codex Routines").first().waitFor();
   await assertNoRefreshButton(page);
   await assertLogsHidden(page);
-  await page.getByText("Tarefas").first().waitFor();
+  await page.getByText("Tasks").first().waitFor();
   await page.screenshot({ path: path.join(runtimeDir, "smoke-mobile.png"), fullPage: true });
   await page.close();
 }
 
 async function assertNoRefreshButton(page) {
-  const refreshButtonCount = await page.getByTitle("Atualizar").count();
+  const refreshButtonCount = await page.getByTitle("Refresh").count();
   if (refreshButtonCount !== 0) {
-    throw new Error("Botao de refresh deve ficar escondido da interface.");
+    throw new Error("Refresh button must stay hidden from the interface.");
   }
 }
 
 async function assertLogsHidden(page) {
   const logsPane = page.getByLabel("Logs");
   if ((await logsPane.count()) > 0 && (await logsPane.first().isVisible())) {
-    throw new Error("Tela de logs deve iniciar escondida.");
+    throw new Error("Logs screen must start hidden.");
   }
 }
 

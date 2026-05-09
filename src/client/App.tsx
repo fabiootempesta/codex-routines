@@ -33,21 +33,21 @@ const fallbackCwd = "/";
 
 const scheduleOptions: Array<{ type: TaskSchedule["type"]; label: string }> = [
   { type: "manual", label: "Manual" },
-  { type: "once", label: "Uma vez" },
-  { type: "interval", label: "Intervalo" },
-  { type: "daily", label: "Diario" },
-  { type: "weekly", label: "Semanal" },
+  { type: "once", label: "Once" },
+  { type: "interval", label: "Interval" },
+  { type: "daily", label: "Daily" },
+  { type: "weekly", label: "Weekly" },
   { type: "cron", label: "Cron" }
 ];
 
 const weekdays = [
-  ["0", "Domingo"],
-  ["1", "Segunda"],
-  ["2", "Terca"],
-  ["3", "Quarta"],
-  ["4", "Quinta"],
-  ["5", "Sexta"],
-  ["6", "Sabado"]
+  ["0", "Sunday"],
+  ["1", "Monday"],
+  ["2", "Tuesday"],
+  ["3", "Wednesday"],
+  ["4", "Thursday"],
+  ["5", "Friday"],
+  ["6", "Saturday"]
 ];
 
 export default function App() {
@@ -345,23 +345,23 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">automacao local</p>
-          <h1>Codex Rotinas</h1>
+          <p className="eyebrow">local automation</p>
+          <h1>Codex Routines</h1>
         </div>
         <div className="topbar-actions">{error && <span className="error-pill">{error}</span>}</div>
       </header>
 
       <main className={`workspace ${isLogsOpen ? "logs-open" : ""}`}>
-        <aside className="task-pane" aria-label="Tarefas">
+        <aside className="task-pane" aria-label="Tasks">
           <div className="pane-heading">
             <div>
-              <h2>Tarefas</h2>
-              <span>{state.tasks.length} cadastradas</span>
+              <h2>Tasks</h2>
+              <span>{state.tasks.length} registered</span>
             </div>
             <button
               className="icon-button primary"
               type="button"
-              title="Nova tarefa"
+              title="New task"
               onClick={() => {
                 setSelectedTaskId("new");
                 setSelectedExecutionId(null);
@@ -375,15 +375,15 @@ export default function App() {
 
           <div className="task-list">
             {isLoading && state.tasks.length === 0 ? (
-              <div className="muted-line">Carregando...</div>
+              <div className="muted-line">Loading...</div>
             ) : state.tasks.length === 0 ? (
-              <div className="empty-block">Nenhuma tarefa ainda.</div>
+              <div className="empty-block">No tasks yet.</div>
             ) : (
               state.tasks.map((task) => {
                 const isTaskRunning =
                   state.executions.some((execution) => execution.taskId === task.id && execution.status === "running") ||
                   (isRunning && task.id === selectedTaskId);
-                const nextRunLabel = task.nextRunAt ? formatDate(task.nextRunAt) : "sem proximo horario";
+                const nextRunLabel = task.nextRunAt ? formatDate(task.nextRunAt) : "no upcoming time";
                 const sidebarState = isTaskRunning ? "running" : task.enabled ? "enabled" : "paused";
 
                 return (
@@ -393,33 +393,33 @@ export default function App() {
                         <span className="task-row-title">{task.title}</span>
                         <span className={`run-presence ${isTaskRunning ? "running" : "idle"}`}>
                           {isTaskRunning ? <Loader2 className="spin" size={13} /> : <Clock3 size={13} />}
-                          {isTaskRunning ? "Rodando" : "Em espera"}
+                          {isTaskRunning ? "Running" : "Waiting"}
                         </span>
                       </span>
                       <span className="task-row-meta">
                         {task.enabled ? <Power size={14} /> : <PowerOff size={14} />}
                         <span className={`task-state ${task.enabled ? "enabled" : "paused"}`}>
-                          {task.enabled ? "Ativa" : "Pausada"}
+                          {task.enabled ? "Active" : "Paused"}
                         </span>
-                        <span>{isTaskRunning ? "Execucao em andamento" : nextRunLabel}</span>
+                        <span>{isTaskRunning ? "Execution in progress" : nextRunLabel}</span>
                       </span>
                     </button>
                     <button
                       className="task-delete"
                       type="button"
-                      title={`Excluir ${task.title}`}
+                      title={`Delete ${task.title}`}
                       onClick={() => setPendingDelete({ taskId: task.id, source: "sidebar" })}
                     >
                       <Trash2 size={15} />
                     </button>
                     {pendingDelete?.taskId === task.id && pendingDelete.source === "sidebar" && (
                       <div className="task-confirm">
-                        <span>Excluir tarefa?</span>
+                        <span>Delete task?</span>
                         <button type="button" onClick={() => setPendingDelete(null)}>
-                          Cancelar
+                          Cancel
                         </button>
                         <button type="button" onClick={() => void deleteTask(task)}>
-                          Excluir agora
+                          Delete now
                         </button>
                       </div>
                     )}
@@ -433,27 +433,27 @@ export default function App() {
         <section className="editor-pane" aria-label="Editor">
           <div className="pane-heading editor-heading">
             <div>
-              <h2>{draft.id ? "Editar rotina" : "Nova rotina"}</h2>
-              <span>{draft.id ? "Configuracao persistida" : "Rascunho local"}</span>
+              <h2>{draft.id ? "Edit routine" : "New routine"}</h2>
+              <span>{draft.id ? "Saved configuration" : "Local draft"}</span>
             </div>
             <div className="button-row">
               <button className="button ghost" type="button" disabled={!draft.id || isRunning || isSelectedTaskRunning} onClick={runSelectedTask}>
                 {isRunning || isSelectedTaskRunning ? <Loader2 className="spin" size={17} /> : <Play size={17} />}
-                {isSelectedTaskRunning ? "Rodando" : "Rodar"}
+                {isSelectedTaskRunning ? "Running" : "Run"}
               </button>
               <button className="button" type="button" disabled={isSaving} onClick={saveDraft}>
                 {isSaving ? <Loader2 className="spin" size={17} /> : <Save size={17} />}
-                Salvar
+                Save
               </button>
             </div>
           </div>
 
-          <section className="run-summary" aria-label="Resumo da rotina">
+          <section className="run-summary" aria-label="Routine summary">
             <div className="summary-grid">
-              <SummaryItem label="Estado" value={draft.enabled ? "Ativa" : "Pausada"} tone={draft.enabled ? "success" : "muted"} />
-              <SummaryItem label="Proxima execucao" value={selectedTask?.nextRunAt ? formatDate(selectedTask.nextRunAt) : "Sem agenda"} />
-              <SummaryItem label="Ultima execucao" value={selectedTask?.lastRunAt ? formatDate(selectedTask.lastRunAt) : "Ainda nao rodou"} />
-              <SummaryItem label="Caminho" value={draft.cwd} mono />
+              <SummaryItem label="Status" value={draft.enabled ? "Active" : "Paused"} tone={draft.enabled ? "success" : "muted"} />
+              <SummaryItem label="Next run" value={selectedTask?.nextRunAt ? formatDate(selectedTask.nextRunAt) : "No schedule"} />
+              <SummaryItem label="Last run" value={selectedTask?.lastRunAt ? formatDate(selectedTask.lastRunAt) : "Has not run yet"} />
+              <SummaryItem label="Path" value={draft.cwd} mono />
             </div>
             <div className="summary-actions">
               <button
@@ -463,22 +463,22 @@ export default function App() {
                 onClick={() => void openSelectedTaskLogs()}
               >
                 {selectedTaskRunningExecution ? <Loader2 className="spin" size={17} /> : <Clock3 size={17} />}
-                {selectedTaskRunningExecution ? "Acompanhar" : "Logs da tarefa"}
+                {selectedTaskRunningExecution ? "Follow" : "Task logs"}
               </button>
               {draft.id && pendingDelete?.taskId === draft.id && pendingDelete.source === "editor" ? (
                 <div className="inline-confirm">
-                  <span>Confirmar exclusao?</span>
+                  <span>Confirm deletion?</span>
                   <button className="button ghost" type="button" onClick={() => setPendingDelete(null)}>
-                    Cancelar
+                    Cancel
                   </button>
                   <button className="button danger solid" type="button" onClick={() => void deleteTask({ id: draft.id, title: draft.title })}>
-                    Excluir agora
+                    Delete now
                   </button>
                 </div>
               ) : (
                 <button className="button danger" type="button" disabled={!draft.id} onClick={deleteSelectedTask}>
                   <Trash2 size={17} />
-                  Excluir rotina
+                  Delete routine
                 </button>
               )}
             </div>
@@ -486,7 +486,7 @@ export default function App() {
 
           <div className="form-grid">
             <label className="field title-field">
-              <span>Nome</span>
+              <span>Name</span>
               <input
                 value={draft.title}
                 onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
@@ -499,11 +499,11 @@ export default function App() {
                 checked={draft.enabled}
                 onChange={(event) => setDraft((current) => ({ ...current, enabled: event.target.checked }))}
               />
-              <span>{draft.enabled ? "Ativa" : "Pausada"}</span>
+              <span>{draft.enabled ? "Active" : "Paused"}</span>
             </label>
 
             <label className="field path-field">
-              <span>Caminho de execucao</span>
+              <span>Execution path</span>
               <input
                 value={draft.cwd}
                 onChange={(event) => setDraft((current) => ({ ...current, cwd: event.target.value }))}
@@ -512,7 +512,7 @@ export default function App() {
           </div>
 
           <div className="schedule-panel">
-            <div className="segmented" role="tablist" aria-label="Tipo de agenda">
+            <div className="segmented" role="tablist" aria-label="Schedule type">
               {scheduleOptions.map((option) => (
                 <button
                   key={option.type}
@@ -540,14 +540,14 @@ export default function App() {
                   type="button"
                   onClick={() => setEditorMode("edit")}
                 >
-                  Editar
+                  Edit
                 </button>
                 <button
                   className={editorMode === "preview" ? "active" : ""}
                   type="button"
                   onClick={() => setEditorMode("preview")}
                 >
-                  Previa
+                  Preview
                 </button>
               </div>
             </div>
@@ -560,7 +560,7 @@ export default function App() {
               />
             ) : (
               <div className="markdown-preview">
-                {draft.prompt.trim() ? <ReactMarkdown>{draft.prompt}</ReactMarkdown> : <span>Sem conteudo.</span>}
+                {draft.prompt.trim() ? <ReactMarkdown>{draft.prompt}</ReactMarkdown> : <span>No content.</span>}
               </div>
             )}
           </div>
@@ -577,21 +577,21 @@ export default function App() {
           <aside className="log-pane" aria-label="Logs">
             <div className="pane-heading">
               <div>
-                <h2>{selectedTask ? "Logs da tarefa" : "Logs"}</h2>
+                <h2>{selectedTask ? "Task logs" : "Logs"}</h2>
                 <span>
-                  {selectedTask ? `${selectedTask.title} · ${state.executions.length} execucoes` : "Selecione uma tarefa"}
+                  {selectedTask ? `${selectedTask.title} · ${state.executions.length} executions` : "Select a task"}
                 </span>
               </div>
-              <button className="icon-button" type="button" title="Fechar logs" onClick={() => setIsLogsOpen(false)}>
+              <button className="icon-button" type="button" title="Close logs" onClick={() => setIsLogsOpen(false)}>
                 <X size={18} />
               </button>
             </div>
 
             <div className="execution-list" aria-hidden="true">
               {!selectedTask ? (
-                <div className="empty-block">Selecione uma tarefa para ver seus logs.</div>
+                <div className="empty-block">Select a task to view its logs.</div>
               ) : state.executions.length === 0 ? (
-                <div className="empty-block">Sem execucoes para esta tarefa.</div>
+                <div className="empty-block">No executions for this task.</div>
               ) : (
                 state.executions.map((execution) => (
                   <button
@@ -617,13 +617,13 @@ export default function App() {
                     <div className="log-reader-head">
                       <div>
                         <strong>Logs</strong>
-                        <span>{state.executions.length} execucoes</span>
+                        <span>{state.executions.length} executions</span>
                       </div>
-                      <button className="log-close-button" type="button" title="Fechar logs" onClick={() => setIsLogsOpen(false)}>
+                      <button className="log-close-button" type="button" title="Close logs" onClick={() => setIsLogsOpen(false)}>
                         <X size={16} />
                       </button>
                     </div>
-                    <div className="log-run-list" aria-label="Execucoes da tarefa">
+                    <div className="log-run-list" aria-label="Task executions">
                       {state.executions.map((execution) => (
                         <button
                           className={`log-run-item ${execution.id === selectedExecution.id ? "selected" : ""}`}
@@ -636,12 +636,12 @@ export default function App() {
                         >
                           <span className={`status-dot ${execution.status}`} />
                           <span>
-                            <strong>{execution.status === "running" ? "Rodando agora" : formatDate(execution.startedAt)}</strong>
+                            <strong>{execution.status === "running" ? "Running now" : formatDate(execution.startedAt)}</strong>
                             <small>
                               {execution.status === "running"
-                                ? "Acompanhando"
+                                ? "Watching"
                                 : execution.exitCode === null
-                                  ? "sem exit code"
+                                  ? "no exit code"
                                   : `exit ${execution.exitCode}`}
                             </small>
                           </span>
@@ -655,7 +655,7 @@ export default function App() {
                         {selectedExecution.status === "stale" && <AlertTriangle size={13} />}
                         {selectedExecution.status}
                       </span>
-                      <span>{selectedExecution.exitCode === null ? "sem exit code" : `exit ${selectedExecution.exitCode}`}</span>
+                      <span>{selectedExecution.exitCode === null ? "no exit code" : `exit ${selectedExecution.exitCode}`}</span>
                     </div>
                   </div>
                   <div className="log-reader-main">
@@ -664,18 +664,18 @@ export default function App() {
                         <strong>{selectedExecution.taskTitle}</strong>
                         <span>
                           {selectedExecution.status === "running"
-                            ? "Acompanhando em tempo real"
+                            ? "Watching live"
                             : selectedExecution.status === "stale"
-                              ? "Execucao sem processo ativo na plataforma"
+                              ? "Execution has no active platform process"
                             : selectedExecution.finishedAt
-                              ? `Finalizada ${formatDate(selectedExecution.finishedAt)}`
-                              : "Execucao aberta"}
+                              ? `Finished ${formatDate(selectedExecution.finishedAt)}`
+                              : "Open execution"}
                         </span>
                       </div>
                       {canContinueSelectedExecution && (
                         <button className="button resume-button" type="button" disabled={isResuming} onClick={() => void continueSelectedExecution()}>
                           {isResuming ? <Loader2 className="spin" size={16} /> : <RotateCcw size={16} />}
-                          Continuar
+                          Continue
                         </button>
                       )}
                     </div>
@@ -683,16 +683,16 @@ export default function App() {
                       <div className="recovery-banner">
                         <AlertTriangle size={17} />
                         <div>
-                          <strong>Execucao possivelmente travada</strong>
+                          <strong>Execution may be stuck</strong>
                           {canContinueSelectedExecution ? (
                             <span>
-                              A plataforma nao esta mais acompanhando esse processo. Continuar retoma a sessao Codex{" "}
-                              <code>{selectedExecution.resumeSessionId}</code> em uma nova execucao rastreada.
+                              The platform is no longer tracking this process. Continue resumes Codex session{" "}
+                              <code>{selectedExecution.resumeSessionId}</code> in a new tracked execution.
                             </span>
                           ) : (
                             <span>
-                              A plataforma nao esta mais acompanhando esse processo e nao encontrou o session id do Codex nos logs. Rode a tarefa
-                              novamente se precisar recomecar.
+                              The platform is no longer tracking this process and did not find a Codex session id in the logs. Run the task
+                              again if you need to restart.
                             </span>
                           )}
                         </div>
@@ -709,14 +709,14 @@ export default function App() {
                     <div className="log-reader-head">
                       <div>
                         <strong>Logs</strong>
-                        <span>{state.executions.length} execucoes</span>
+                        <span>{state.executions.length} executions</span>
                       </div>
-                      <button className="log-close-button" type="button" title="Fechar logs" onClick={() => setIsLogsOpen(false)}>
+                      <button className="log-close-button" type="button" title="Close logs" onClick={() => setIsLogsOpen(false)}>
                         <X size={16} />
                       </button>
                     </div>
                   </div>
-                  <div className="empty-block">Selecione uma execucao.</div>
+                  <div className="empty-block">Select an execution.</div>
                 </>
               )}
             </div>
@@ -744,7 +744,7 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
       <div className="schedule-fields">
         <span className="schedule-note">
           <CalendarClock size={16} />
-          Sem disparo automatico
+          No automatic trigger
         </span>
       </div>
     );
@@ -754,7 +754,7 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
     return (
       <div className="schedule-fields">
         <label className="field">
-          <span>Data e hora</span>
+          <span>Date and time</span>
           <input type="datetime-local" value={schedule.runAt} onChange={(event) => onChange({ ...schedule, runAt: event.target.value })} />
         </label>
       </div>
@@ -765,7 +765,7 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
     return (
       <div className="schedule-fields">
         <label className="field short-field">
-          <span>Minutos</span>
+          <span>Minutes</span>
           <input
             type="number"
             min={1}
@@ -781,7 +781,7 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
     return (
       <div className="schedule-fields">
         <label className="field short-field">
-          <span>Horario</span>
+          <span>Time</span>
           <input type="time" value={schedule.time} onChange={(event) => onChange({ ...schedule, time: event.target.value })} />
         </label>
       </div>
@@ -792,7 +792,7 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
     return (
       <div className="schedule-fields two-cols">
         <label className="field">
-          <span>Dia</span>
+          <span>Day</span>
           <select value={String(schedule.dayOfWeek)} onChange={(event) => onChange({ ...schedule, dayOfWeek: Number(event.target.value) })}>
             {weekdays.map(([value, label]) => (
               <option key={value} value={value}>
@@ -802,7 +802,7 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
           </select>
         </label>
         <label className="field short-field">
-          <span>Horario</span>
+          <span>Time</span>
           <input type="time" value={schedule.time} onChange={(event) => onChange({ ...schedule, time: event.target.value })} />
         </label>
       </div>
@@ -812,7 +812,7 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
   return (
     <div className="schedule-fields">
       <label className="field">
-        <span>Expressao</span>
+        <span>Expression</span>
         <input value={schedule.expression} onChange={(event) => onChange({ ...schedule, expression: event.target.value })} />
       </label>
     </div>
@@ -821,8 +821,8 @@ function ScheduleFields(props: { schedule: TaskSchedule; onChange: (schedule: Ta
 
 function createEmptyDraft(cwd: string): DraftTask {
   return {
-    title: "Nova rotina Codex",
-    prompt: "# Objetivo\n\n",
+    title: "New Codex routine",
+    prompt: "# Goal\n\n",
     cwd,
     enabled: true,
     schedule: { type: "manual" }
@@ -885,7 +885,7 @@ function toMessage(error: unknown): string {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat("en-US", {
     dateStyle: "short",
     timeStyle: "short"
   }).format(new Date(value));
@@ -899,9 +899,9 @@ function toDatetimeLocal(date: Date): string {
 
 function buildLogText(execution: Execution): string {
   const command = `$ ${execution.command.join(" ")}`;
-  const error = execution.error ? `\n\n[erro]\n${execution.error}` : "";
+  const error = execution.error ? `\n\n[error]\n${execution.error}` : "";
   const stderr = execution.stderr ? `\n\n[stderr]\n${execution.stderr}` : "";
-  const emptyStdout = execution.status === "running" ? "aguardando saida do codex..." : "";
+  const emptyStdout = execution.status === "running" ? "waiting for codex output..." : "";
   const stdout = `\n\n[stdout]\n${execution.stdout || emptyStdout}`;
   return `${command}\n\ncwd: ${execution.cwd}${stdout}${stderr}${error}`;
 }

@@ -12,8 +12,8 @@ describe("client execution state", () => {
 
   it("merges streaming execution updates without losing list order", () => {
     const oldRun = execution({ id: "old", taskId: "task-1", status: "success", startedAt: "2026-05-08T20:00:00.000Z" });
-    const liveRun = execution({ id: "live", taskId: "task-1", status: "running", startedAt: "2026-05-08T21:00:00.000Z", stdout: "primeiro" });
-    const updatedLiveRun = { ...liveRun, stdout: "primeiro\nsegundo" };
+    const liveRun = execution({ id: "live", taskId: "task-1", status: "running", startedAt: "2026-05-08T21:00:00.000Z", stdout: "first" });
+    const updatedLiveRun = { ...liveRun, stdout: "first\nsecond" };
 
     expect(mergeExecutionIntoList([liveRun, oldRun], updatedLiveRun)).toEqual([updatedLiveRun, oldRun]);
   });
@@ -53,7 +53,7 @@ function execution(overrides: Partial<Execution>): Execution {
     stdout: "",
     stderr: "",
     command: ["codex", "exec"],
-    cwd: "/tmp/codex-rotinas-fixture",
+    cwd: "/tmp/codex-routines-fixture",
     prompt: "Run",
     error: null,
     processId: null,

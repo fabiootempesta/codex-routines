@@ -59,7 +59,7 @@ describe("execution recovery state", () => {
     const updated = store.getExecution(execution.id);
     expect(updated?.status).toBe("stale");
     expect(updated?.staleAt).toBe("2026-05-09T18:30:00.000Z");
-    expect(updated?.error).toContain("orfa");
+    expect(updated?.error).toContain("Orphaned");
   });
 
   it("does not mark executions that are still tracked by the scheduler", async () => {
@@ -79,8 +79,8 @@ describe("execution recovery state", () => {
 
 function taskInput(): Omit<Task, "id" | "nextRunAt" | "lastRunAt" | "createdAt" | "updatedAt"> {
   return {
-    title: "PR HoraAqui",
-    prompt: "Processar PRs",
+    title: "HoraAqui PR",
+    prompt: "Process PRs",
     cwd: tempDir,
     schedule: { type: "manual" },
     enabled: true

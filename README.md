@@ -1,8 +1,8 @@
-# Codex Rotinas
+# Codex Routines
 
-Plataforma local para agendar execucoes do Codex CLI com prompt markdown, diretorio de execucao e logs.
+Local platform for scheduling Codex CLI executions with markdown prompts, execution directories, and logs.
 
-## Rodar
+## Run
 
 ```bash
 npm install
@@ -10,23 +10,24 @@ npm run build
 npm run daemon:start
 ```
 
-Abra `http://localhost:4173`.
+Open `http://localhost:4173`.
 
-## Parar e verificar
+## Stop And Check
 
 ```bash
 npm run daemon:status
 npm run daemon:stop
 ```
 
-## Dados locais
+## Local Data
 
-- Tarefas e execucoes ficam em `data/db.json`.
-- Log do servidor fica em `runtime/server.log`.
-- Cada execucao roda com:
+- Tasks and executions are stored in `data/db.json`.
+- Set `CODEX_ROUTINES_DB` to use a different database file.
+- The server log is stored in `runtime/server.log`.
+- Each execution runs with:
 
 ```bash
-codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check --color never --cd <caminho> -
+codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check --color never --cd <path> -
 ```
 
-O prompt da tarefa e enviado ao stdin do processo.
+The task prompt is sent to the process through stdin.

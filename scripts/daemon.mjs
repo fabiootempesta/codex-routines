@@ -16,7 +16,7 @@ const host = process.env.HOST ?? "0.0.0.0";
 const command = process.argv[2];
 
 if (!["start", "stop", "status"].includes(command)) {
-  console.error("Uso: node scripts/daemon.mjs <start|stop|status>");
+  console.error("Usage: node scripts/daemon.mjs <start|stop|status>");
   process.exit(1);
 }
 
@@ -33,12 +33,12 @@ async function start() {
 
   const existingPid = await readPid();
   if (existingPid && isRunning(existingPid)) {
-    console.log(`Codex Rotinas ja esta rodando no PID ${existingPid}.`);
+    console.log(`Codex Routines is already running on PID ${existingPid}.`);
     return;
   }
 
   await access(serverEntry, constants.R_OK).catch(() => {
-    throw new Error("Build nao encontrado. Rode npm run build antes de npm run daemon:start.");
+    throw new Error("Build not found. Run npm run build before npm run daemon:start.");
   });
 
   const logFile = await open(logPath, "a");
@@ -55,40 +55,40 @@ async function start() {
 
   child.unref();
   await writeFile(pidPath, `${child.pid}\n`, "utf8");
-  console.log(`Codex Rotinas iniciado no PID ${child.pid}.`);
+  console.log(`Codex Routines started on PID ${child.pid}.`);
   printUrls();
-  console.log(`Log do servidor: ${logPath}`);
+  console.log(`Server log: ${logPath}`);
 }
 
 async function stop() {
   const pid = await readPid();
 
   if (!pid) {
-    console.log("Nenhum PID registrado.");
+    console.log("No PID registered.");
     return;
   }
 
   if (!isRunning(pid)) {
     await rm(pidPath, { force: true });
-    console.log("PID antigo removido.");
+    console.log("Removed stale PID.");
     return;
   }
 
   process.kill(pid, "SIGTERM");
   await rm(pidPath, { force: true });
-  console.log(`Codex Rotinas parado no PID ${pid}.`);
+  console.log(`Codex Routines stopped on PID ${pid}.`);
 }
 
 async function status() {
   const pid = await readPid();
 
   if (pid && isRunning(pid)) {
-    console.log(`Codex Rotinas rodando no PID ${pid}.`);
+    console.log(`Codex Routines is running on PID ${pid}.`);
     printUrls();
     return;
   }
 
-  console.log("Codex Rotinas nao esta rodando.");
+  console.log("Codex Routines is not running.");
 }
 
 async function readPid() {

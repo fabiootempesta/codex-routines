@@ -3,7 +3,7 @@ import { buildCodexCommand, buildCodexResumeCommand } from "../src/server/runner
 
 describe("buildCodexCommand", () => {
   it("uses non-interactive Codex with bypass flags and the selected cwd", () => {
-    const command = buildCodexCommand("/tmp/codex-rotinas-fixture");
+    const command = buildCodexCommand("/tmp/codex-routines-fixture");
 
     expect(command.file).toBe("codex");
     expect(command.args).toEqual([
@@ -13,7 +13,7 @@ describe("buildCodexCommand", () => {
       "--color",
       "never",
       "--cd",
-      "/tmp/codex-rotinas-fixture",
+      "/tmp/codex-routines-fixture",
       "-"
     ]);
   });

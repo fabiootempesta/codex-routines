@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Codex Rotinas is used by a local developer or operator who wants Codex jobs to run on a schedule without babysitting the terminal. The user is usually working in a repository, preparing repeatable maintenance prompts, checking whether a job is active, and reviewing logs after a run.
+Codex Routines is used by a local developer or operator who wants Codex jobs to run on a schedule without babysitting the terminal. The user is usually working in a repository, preparing repeatable maintenance prompts, checking whether a job is active, and reviewing logs after a run.
 
 ## Product Purpose
 

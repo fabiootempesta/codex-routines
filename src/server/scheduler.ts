@@ -32,7 +32,7 @@ export class Scheduler {
   async runTaskNow(taskId: string): Promise<Execution> {
     const task = this.store.getTask(taskId);
     if (!task) {
-      throw new Error("Tarefa nao encontrada.");
+      throw new Error("Task not found.");
     }
 
     return this.launchTask(task, "manual");
@@ -41,16 +41,16 @@ export class Scheduler {
   async resumeExecution(executionId: string): Promise<Execution> {
     const staleExecution = this.store.getExecution(executionId);
     if (!staleExecution) {
-      throw new Error("Execucao nao encontrada.");
+      throw new Error("Execution not found.");
     }
 
     const task = this.store.getTask(staleExecution.taskId);
     if (!task) {
-      throw new Error("Tarefa da execucao nao encontrada.");
+      throw new Error("Execution task not found.");
     }
 
     if (!staleExecution.resumeSessionId) {
-      throw new Error("Nao encontrei session id do Codex para continuar esta execucao.");
+      throw new Error("Could not find a Codex session id to continue this execution.");
     }
 
     return this.launchTask(task, "resume", {
@@ -90,7 +90,7 @@ export class Scheduler {
     } = {}
   ): Promise<Execution> {
     if (this.runningTaskIds.has(task.id)) {
-      throw new Error("Esta tarefa ja esta em execucao.");
+      throw new Error("This task is already running.");
     }
 
     this.runningTaskIds.add(task.id);
@@ -143,9 +143,9 @@ export class Scheduler {
 }
 
 function buildResumePrompt(task: Task, execution: Execution): string {
-  return `Continue a execucao anterior da rotina "${task.title}".
+  return `Continue the previous execution for routine "${task.title}".
 
-A execucao ${execution.id} ficou orfa/travada na plataforma local, mas existe uma sessao Codex anterior para retomar: ${execution.resumeSessionId}.
+Execution ${execution.id} became orphaned/stuck in the local platform, but a previous Codex session is available to resume: ${execution.resumeSessionId}.
 
-Retome a partir do estado atual do workspace (${execution.cwd}). Preserve mudancas existentes, nao reverta alteracoes do usuario, resolva conflitos se necessario e siga o objetivo original da rotina ate uma conclusao clara.`;
+Resume from the current workspace state (${execution.cwd}). Preserve existing changes, do not revert user changes, resolve conflicts if needed, and continue the original routine goal to a clear conclusion.`;
 }
