@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findRunningExecution, mergeExecutionIntoList, resolveExecutionSelection } from "../src/client/executionState";
+import { findRunningExecution, isContinuableExecution, mergeExecutionIntoList, resolveExecutionSelection } from "../src/client/executionState";
 import type { Execution } from "../src/server/types";
 
 describe("client execution state", () => {
@@ -26,6 +26,17 @@ describe("client execution state", () => {
       "live"
     );
   });
+
+  it("allows continuing stale or failed executions when a Codex session id is known", () => {
+    const stale = execution({
+      status: "stale",
+      resumeSessionId: "019e0dc0-bc6d-7c32-8520-2f1130559c89"
+    });
+    const failedWithoutSession = execution({ status: "failed", resumeSessionId: null });
+
+    expect(isContinuableExecution(stale)).toBe(true);
+    expect(isContinuableExecution(failedWithoutSession)).toBe(false);
+  });
 });
 
 function execution(overrides: Partial<Execution>): Execution {
@@ -37,6 +48,7 @@ function execution(overrides: Partial<Execution>): Execution {
     status: "success",
     startedAt: "2026-05-08T20:00:00.000Z",
     finishedAt: "2026-05-08T20:01:00.000Z",
+    lastOutputAt: "2026-05-08T20:00:30.000Z",
     exitCode: 0,
     stdout: "",
     stderr: "",
@@ -44,6 +56,11 @@ function execution(overrides: Partial<Execution>): Execution {
     cwd: "/tmp/codex-rotinas-fixture",
     prompt: "Run",
     error: null,
+    processId: null,
+    resumeSessionId: null,
+    resumedFromExecutionId: null,
+    staleAt: null,
+    staleReason: null,
     ...overrides
   };
 }

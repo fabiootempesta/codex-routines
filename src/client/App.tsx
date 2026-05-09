@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import {
+  AlertTriangle,
   CalendarClock,
   Check,
   Clock3,
@@ -10,12 +11,13 @@ import {
   Plus,
   Power,
   PowerOff,
+  RotateCcw,
   Save,
   Terminal,
   Trash2,
   X
 } from "lucide-react";
-import { findRunningExecution, mergeExecutionIntoList, resolveExecutionSelection } from "./executionState";
+import { findRunningExecution, isContinuableExecution, mergeExecutionIntoList, resolveExecutionSelection } from "./executionState";
 import type { CreateTaskInput, Execution, Task, TaskSchedule } from "../server/types";
 
 type DraftTask = CreateTaskInput & {
@@ -56,6 +58,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [homeDir, setHomeDir] = useState(fallbackCwd);
   const [editorMode, setEditorMode] = useState<"edit" | "preview">("edit");
@@ -79,6 +82,8 @@ export default function App() {
     [selectedTask, state.executions]
   );
   const isSelectedTaskRunning = Boolean(selectedTaskRunningExecution);
+  const canContinueSelectedExecution = isContinuableExecution(selectedExecution);
+  const selectedExecutionNeedsRecovery = selectedExecution?.status === "stale" || canContinueSelectedExecution;
 
   useEffect(() => {
     void bootstrap();
@@ -245,6 +250,31 @@ export default function App() {
       setError(toMessage(requestError));
     } finally {
       setIsRunning(false);
+    }
+  }
+
+  async function continueSelectedExecution() {
+    if (!selectedExecution || !canContinueSelectedExecution) return;
+
+    setIsResuming(true);
+    setError(null);
+
+    try {
+      const response = await api<{ execution: Execution }>(`/api/executions/${selectedExecution.id}/resume`, {
+        method: "POST"
+      });
+      shouldStickToLogEndRef.current = true;
+      setState((current) => ({
+        ...current,
+        executions: mergeExecutionIntoList(current.executions, response.execution)
+      }));
+      setSelectedExecutionId(response.execution.id);
+      setIsLogsOpen(true);
+      await refresh(false, response.execution.taskId);
+    } catch (requestError) {
+      setError(toMessage(requestError));
+    } finally {
+      setIsResuming(false);
     }
   }
 
@@ -622,6 +652,7 @@ export default function App() {
                       <span className={`badge ${selectedExecution.status}`}>
                         {selectedExecution.status === "running" && <Loader2 className="spin" size={13} />}
                         {selectedExecution.status === "success" && <Check size={13} />}
+                        {selectedExecution.status === "stale" && <AlertTriangle size={13} />}
                         {selectedExecution.status}
                       </span>
                       <span>{selectedExecution.exitCode === null ? "sem exit code" : `exit ${selectedExecution.exitCode}`}</span>
@@ -634,12 +665,39 @@ export default function App() {
                         <span>
                           {selectedExecution.status === "running"
                             ? "Acompanhando em tempo real"
+                            : selectedExecution.status === "stale"
+                              ? "Execucao sem processo ativo na plataforma"
                             : selectedExecution.finishedAt
                               ? `Finalizada ${formatDate(selectedExecution.finishedAt)}`
                               : "Execucao aberta"}
                         </span>
                       </div>
+                      {canContinueSelectedExecution && (
+                        <button className="button resume-button" type="button" disabled={isResuming} onClick={() => void continueSelectedExecution()}>
+                          {isResuming ? <Loader2 className="spin" size={16} /> : <RotateCcw size={16} />}
+                          Continuar
+                        </button>
+                      )}
                     </div>
+                    {selectedExecutionNeedsRecovery && (
+                      <div className="recovery-banner">
+                        <AlertTriangle size={17} />
+                        <div>
+                          <strong>Execucao possivelmente travada</strong>
+                          {canContinueSelectedExecution ? (
+                            <span>
+                              A plataforma nao esta mais acompanhando esse processo. Continuar retoma a sessao Codex{" "}
+                              <code>{selectedExecution.resumeSessionId}</code> em uma nova execucao rastreada.
+                            </span>
+                          ) : (
+                            <span>
+                              A plataforma nao esta mais acompanhando esse processo e nao encontrou o session id do Codex nos logs. Rode a tarefa
+                              novamente se precisar recomecar.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <pre ref={logPreRef} aria-live={selectedExecution.status === "running" ? "polite" : undefined} onScroll={handleLogScroll}>
                       {buildLogText(selectedExecution)}
                     </pre>

@@ -793,6 +793,12 @@ button:disabled {
   color: var(--danger);
 }
 
+.status-dot.stale,
+.badge.stale {
+  background: oklch(95% 0.04 75);
+  color: oklch(38% 0.1 75);
+}
+
 .status-dot.running,
 .badge.running {
   background: oklch(95% 0.04 75);
@@ -967,7 +973,7 @@ button:disabled {
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .log-reader-toolbar {
@@ -977,6 +983,8 @@ button:disabled {
   background: oklch(19.5% 0.024 245);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .log-reader-title {
@@ -992,6 +1000,54 @@ button:disabled {
   color: oklch(72% 0.016 245);
   font-size: 0.75rem;
   line-height: 1.35;
+}
+
+.resume-button {
+  min-height: 34px;
+  background: oklch(88% 0.08 75);
+  border-color: oklch(78% 0.08 75);
+  color: oklch(25% 0.075 75);
+}
+
+.resume-button:hover {
+  background: oklch(84% 0.1 75);
+}
+
+.recovery-banner {
+  min-width: 0;
+  padding: 12px 18px;
+  border-bottom: 1px solid oklch(31% 0.028 245);
+  background: oklch(24% 0.033 75);
+  color: oklch(91% 0.045 75);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.recovery-banner strong,
+.recovery-banner span {
+  display: block;
+}
+
+.recovery-banner strong {
+  font-size: 0.8rem;
+}
+
+.recovery-banner span {
+  margin-top: 3px;
+  color: oklch(84% 0.04 75);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.recovery-banner code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: oklch(18% 0.024 245 / 0.45);
+  color: oklch(94% 0.035 75);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
 }
 
 .log-detail-reader pre {

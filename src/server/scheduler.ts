@@ -1,10 +1,11 @@
-import { buildCodexCommand, formatCommand, runCodexTask } from "./runner.js";
+import { buildCodexCommand, buildCodexResumeCommand, formatCommand, runCodexCommand } from "./runner.js";
 import type { JsonStore } from "./store.js";
 import type { Execution, ExecutionTrigger, Task } from "./types.js";
 
 export class Scheduler {
   private timer: NodeJS.Timeout | null = null;
   private readonly runningTaskIds = new Set<string>();
+  private readonly runningExecutionIds = new Set<string>();
   private tickInProgress = false;
 
   constructor(
@@ -37,11 +38,35 @@ export class Scheduler {
     return this.launchTask(task, "manual");
   }
 
+  async resumeExecution(executionId: string): Promise<Execution> {
+    const staleExecution = this.store.getExecution(executionId);
+    if (!staleExecution) {
+      throw new Error("Execucao nao encontrada.");
+    }
+
+    const task = this.store.getTask(staleExecution.taskId);
+    if (!task) {
+      throw new Error("Tarefa da execucao nao encontrada.");
+    }
+
+    if (!staleExecution.resumeSessionId) {
+      throw new Error("Nao encontrei session id do Codex para continuar esta execucao.");
+    }
+
+    return this.launchTask(task, "resume", {
+      command: buildCodexResumeCommand(staleExecution.resumeSessionId),
+      prompt: buildResumePrompt(task, staleExecution),
+      resumeSessionId: staleExecution.resumeSessionId,
+      resumedFromExecutionId: staleExecution.id
+    });
+  }
+
   private async tick(): Promise<void> {
     if (this.tickInProgress) return;
     this.tickInProgress = true;
 
     try {
+      await this.reconcileUntrackedExecutions();
       const dueTasks = this.store.listDueTasks(new Date());
 
       for (const task of dueTasks) {
@@ -54,26 +79,40 @@ export class Scheduler {
     }
   }
 
-  private async launchTask(task: Task, trigger: ExecutionTrigger): Promise<Execution> {
+  private async launchTask(
+    task: Task,
+    trigger: ExecutionTrigger,
+    options: {
+      command?: ReturnType<typeof buildCodexCommand>;
+      prompt?: string;
+      resumeSessionId?: string | null;
+      resumedFromExecutionId?: string | null;
+    } = {}
+  ): Promise<Execution> {
     if (this.runningTaskIds.has(task.id)) {
       throw new Error("Esta tarefa ja esta em execucao.");
     }
 
     this.runningTaskIds.add(task.id);
-    const command = buildCodexCommand(task.cwd);
+    const command = options.command ?? buildCodexCommand(task.cwd);
     const execution = await this.store.createExecution({
       task,
       trigger,
-      command: formatCommand(command)
+      command: formatCommand(command),
+      prompt: options.prompt,
+      resumeSessionId: options.resumeSessionId,
+      resumedFromExecutionId: options.resumedFromExecutionId
     });
+    this.runningExecutionIds.add(execution.id);
 
-    void this.executeTask(task, execution.id);
+    void this.executeTask(task, execution.id, command, options.prompt ?? task.prompt);
     return execution;
   }
 
-  private async executeTask(task: Task, executionId: string): Promise<void> {
+  private async executeTask(task: Task, executionId: string, command: ReturnType<typeof buildCodexCommand>, prompt: string): Promise<void> {
     try {
-      const result = await runCodexTask(task, {
+      const result = await runCodexCommand(command, task.cwd, prompt, {
+        onStart: (pid) => this.store.setExecutionProcessId(executionId, pid),
         onStdout: (chunk) => this.store.appendExecutionOutput(executionId, "stdout", chunk),
         onStderr: (chunk) => this.store.appendExecutionOutput(executionId, "stderr", chunk)
       });
@@ -91,6 +130,22 @@ export class Scheduler {
     } finally {
       await this.store.finishTaskRun(task.id);
       this.runningTaskIds.delete(task.id);
+      this.runningExecutionIds.delete(executionId);
     }
   }
+
+  private async reconcileUntrackedExecutions(): Promise<void> {
+    const staleExecutions = await this.store.markUntrackedRunningExecutions(this.runningExecutionIds);
+    for (const execution of staleExecutions) {
+      await this.store.finishTaskRun(execution.taskId);
+    }
+  }
+}
+
+function buildResumePrompt(task: Task, execution: Execution): string {
+  return `Continue a execucao anterior da rotina "${task.title}".
+
+A execucao ${execution.id} ficou orfa/travada na plataforma local, mas existe uma sessao Codex anterior para retomar: ${execution.resumeSessionId}.
+
+Retome a partir do estado atual do workspace (${execution.cwd}). Preserve mudancas existentes, nao reverta alteracoes do usuario, resolva conflitos se necessario e siga o objetivo original da rotina ate uma conclusao clara.`;
 }

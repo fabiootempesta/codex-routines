@@ -125,6 +125,9 @@ export class JsonStore {
     task: Task;
     trigger: ExecutionTrigger;
     command: string[];
+    prompt?: string;
+    resumeSessionId?: string | null;
+    resumedFromExecutionId?: string | null;
   }): Promise<Execution> {
     return this.mutate(() => {
       const now = new Date();
@@ -136,17 +139,32 @@ export class JsonStore {
         status: "running",
         startedAt: now.toISOString(),
         finishedAt: null,
+        lastOutputAt: now.toISOString(),
         exitCode: null,
         stdout: "",
         stderr: "",
         command: input.command,
         cwd: input.task.cwd,
-        prompt: input.task.prompt,
-        error: null
+        prompt: input.prompt ?? input.task.prompt,
+        error: null,
+        processId: null,
+        resumeSessionId: input.resumeSessionId ?? null,
+        resumedFromExecutionId: input.resumedFromExecutionId ?? null,
+        staleAt: null,
+        staleReason: null
       };
 
       this.database.executions.push(execution);
       return execution;
+    });
+  }
+
+  async setExecutionProcessId(id: string, processId: number): Promise<void> {
+    await this.mutate(() => {
+      const execution = this.getExecution(id);
+      if (!execution) return;
+
+      execution.processId = processId;
     });
   }
 
@@ -156,6 +174,34 @@ export class JsonStore {
       if (!execution) return;
 
       execution[stream] += chunk;
+      execution.lastOutputAt = new Date().toISOString();
+      execution.resumeSessionId = execution.resumeSessionId ?? extractCodexSessionId(chunk);
+    });
+  }
+
+  async markUntrackedRunningExecutions(activeExecutionIds: Set<string>, now = new Date()): Promise<Execution[]> {
+    return this.mutate(() => {
+      const staleAt = now.toISOString();
+      const stale: Execution[] = [];
+
+      for (const execution of this.database.executions) {
+        if (execution.status !== "running" || activeExecutionIds.has(execution.id)) continue;
+
+        const reason = execution.processId
+          ? `Execucao orfa: a plataforma nao esta mais acompanhando o processo ${execution.processId}.`
+          : "Execucao orfa: a plataforma reiniciou ou perdeu o processo Codex dessa execucao.";
+
+        execution.status = "stale";
+        execution.finishedAt = staleAt;
+        execution.exitCode = null;
+        execution.staleAt = staleAt;
+        execution.staleReason = reason;
+        execution.error = reason;
+        execution.stderr = appendLogLine(execution.stderr, `[codex-routines] ${reason}`);
+        stale.push(execution);
+      }
+
+      return stale;
     });
   }
 
@@ -239,8 +285,32 @@ export async function assertDirectory(directory: string): Promise<void> {
 function normalizeDatabase(input: Partial<DatabaseShape>): DatabaseShape {
   return {
     tasks: Array.isArray(input.tasks) ? input.tasks : [],
-    executions: Array.isArray(input.executions) ? input.executions : []
+    executions: Array.isArray(input.executions) ? input.executions.map(normalizeExecution) : []
   };
+}
+
+function normalizeExecution(input: Execution): Execution {
+  const lastOutputAt = input.lastOutputAt ?? input.finishedAt ?? input.startedAt;
+  const resumeSessionId = input.resumeSessionId ?? extractCodexSessionId(`${input.stderr ?? ""}\n${input.stdout ?? ""}`);
+
+  return {
+    ...input,
+    lastOutputAt,
+    processId: input.processId ?? null,
+    resumeSessionId,
+    resumedFromExecutionId: input.resumedFromExecutionId ?? null,
+    staleAt: input.staleAt ?? null,
+    staleReason: input.staleReason ?? null
+  };
+}
+
+function extractCodexSessionId(value: string): string | null {
+  return value.match(/session id:\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i)?.[1] ?? null;
+}
+
+function appendLogLine(current: string, line: string): string {
+  if (!current) return `${line}\n`;
+  return current.endsWith("\n") ? `${current}${line}\n` : `${current}\n${line}\n`;
 }
 
 function compareNewestFirst(left: Task, right: Task): number {

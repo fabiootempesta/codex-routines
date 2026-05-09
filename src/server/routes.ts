@@ -107,6 +107,14 @@ export function createApiRouter(store: JsonStore, scheduler: Scheduler): Router 
     response.json({ execution });
   });
 
+  router.post(
+    "/executions/:id/resume",
+    asyncHandler(async (request, response) => {
+      const execution = await scheduler.resumeExecution(request.params.id);
+      response.status(202).json({ execution });
+    })
+  );
+
   router.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) {
       response.status(400).json({ error: "Dados invalidos.", details: error.flatten() });

@@ -49,9 +49,9 @@ export type Task = {
   updatedAt: string;
 };
 
-export type ExecutionStatus = "running" | "success" | "failed";
+export type ExecutionStatus = "running" | "success" | "failed" | "stale";
 
-export type ExecutionTrigger = "manual" | "scheduled";
+export type ExecutionTrigger = "manual" | "scheduled" | "resume";
 
 export type Execution = {
   id: string;
@@ -61,6 +61,7 @@ export type Execution = {
   status: ExecutionStatus;
   startedAt: string;
   finishedAt: string | null;
+  lastOutputAt: string;
   exitCode: number | null;
   stdout: string;
   stderr: string;
@@ -68,6 +69,11 @@ export type Execution = {
   cwd: string;
   prompt: string;
   error: string | null;
+  processId: number | null;
+  resumeSessionId: string | null;
+  resumedFromExecutionId: string | null;
+  staleAt: string | null;
+  staleReason: string | null;
 };
 
 export type DatabaseShape = {

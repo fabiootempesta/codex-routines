@@ -29,6 +29,11 @@ export function resolveExecutionSelection(input: {
   return input.executions[0]?.id ?? null;
 }
 
+export function isContinuableExecution(execution: Execution | null): boolean {
+  if (!execution?.resumeSessionId) return false;
+  return execution.status === "stale" || execution.status === "failed";
+}
+
 function compareExecutionNewestFirst(left: Execution, right: Execution): number {
   return right.startedAt.localeCompare(left.startedAt);
 }
