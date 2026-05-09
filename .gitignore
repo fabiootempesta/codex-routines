@@ -1,0 +1,17 @@
+node_modules/
+dist/
+runtime/
+data/
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+
+.impeccable/
+docs/superpowers/plans/
+
+*.log
+*.tmp
