@@ -3,6 +3,34 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "Local control room for scheduled Codex CLI routines. Author Markdown prompts, pick a schedule, run as a small daemon — see live runs, history, and recovery in a dark IDE-style UI.",
+  "license": "MIT",
+  "author": "Fabio Tempesta",
+  "homepage": "https://github.com/fabiootempesta/codex-routines#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fabiootempesta/codex-routines.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fabiootempesta/codex-routines/issues"
+  },
+  "keywords": [
+    "codex",
+    "openai",
+    "automation",
+    "scheduler",
+    "cron",
+    "agent",
+    "ai",
+    "llm",
+    "developer-tools",
+    "cli",
+    "daemon",
+    "local-first"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "tsx watch src/server/index.ts",
     "build": "npm run build:client && npm run build:server",
@@ -15,6 +43,8 @@
     "daemon:status": "node scripts/daemon.mjs status"
   },
   "dependencies": {
+    "@fontsource/geist": "^5.2.8",
+    "@fontsource/geist-mono": "^5.2.7",
     "croner": "^9.1.0",
     "express": "^4.21.2",
     "lucide-react": "^0.468.0",

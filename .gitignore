@@ -11,7 +11,9 @@ data/
 Thumbs.db
 
 .impeccable/
-docs/superpowers/plans/
+docs/superpowers/
+.playwright-mcp/
+.tmp/
 
 *.log
 *.tmp

@@ -60,7 +60,7 @@ function mockApi() {
         return jsonResponse({ tasks: [task] });
       }
 
-      if (url === "/api/executions?taskId=task-1") {
+      if (url === "/api/executions" || url === "/api/executions?taskId=task-1") {
         return jsonResponse({ executions: [] });
       }
 
