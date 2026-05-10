@@ -90,6 +90,78 @@ describe("execution recovery state", () => {
     expect(execution.id).toBe(reservedId);
     expect(store.getExecution(reservedId)?.id).toBe(reservedId);
   });
+
+  it("emits summaries that omit raw output and report stream sizes", async () => {
+    const task = await store.createTask(taskInput());
+    const execution = await store.createExecution({
+      task,
+      trigger: "manual",
+      command: ["codex", "exec"]
+    });
+    await store.appendExecutionOutput(execution.id, "stdout", "hello world");
+    await store.appendExecutionOutput(execution.id, "stderr", "warn 1\nwarn 2");
+
+    const summary = store.getExecutionSummary(execution.id);
+    expect(summary).not.toBeNull();
+    expect(summary).not.toHaveProperty("stdout");
+    expect(summary).not.toHaveProperty("stderr");
+    expect(summary?.stdoutSize).toBe("hello world".length);
+    expect(summary?.stderrSize).toBe("warn 1\nwarn 2".length);
+  });
+
+  it("returns the tail of an output stream when no range is provided", async () => {
+    const task = await store.createTask(taskInput());
+    const execution = await store.createExecution({
+      task,
+      trigger: "manual",
+      command: ["codex", "exec"]
+    });
+    await store.appendExecutionOutput(execution.id, "stdout", "0123456789ABCDEFGHIJ");
+
+    const tail = store.getExecutionOutput(execution.id, "stdout", { tail: 5 });
+
+    expect(tail).toEqual({
+      stream: "stdout",
+      from: 15,
+      to: 20,
+      totalSize: 20,
+      content: "FGHIJ"
+    });
+  });
+
+  it("returns the requested byte range when from and to are given", async () => {
+    const task = await store.createTask(taskInput());
+    const execution = await store.createExecution({
+      task,
+      trigger: "manual",
+      command: ["codex", "exec"]
+    });
+    await store.appendExecutionOutput(execution.id, "stderr", "0123456789ABCDEFGHIJ");
+
+    const range = store.getExecutionOutput(execution.id, "stderr", { from: 4, to: 10 });
+
+    expect(range?.content).toBe("456789");
+    expect(range?.from).toBe(4);
+    expect(range?.to).toBe(10);
+    expect(range?.totalSize).toBe(20);
+  });
+
+  it("returns bytes appended after a known offset for incremental polling", async () => {
+    const task = await store.createTask(taskInput());
+    const execution = await store.createExecution({
+      task,
+      trigger: "manual",
+      command: ["codex", "exec"]
+    });
+    await store.appendExecutionOutput(execution.id, "stdout", "first");
+    await store.appendExecutionOutput(execution.id, "stdout", "-then-more");
+
+    const incremental = store.getExecutionOutput(execution.id, "stdout", { from: 5 });
+
+    expect(incremental?.from).toBe(5);
+    expect(incremental?.to).toBe(15);
+    expect(incremental?.content).toBe("-then-more");
+  });
 });
 
 function taskInput(): Omit<Task, "id" | "nextRunAt" | "lastRunAt" | "createdAt" | "updatedAt"> {

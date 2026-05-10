@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { findRunningExecution, isContinuableExecution, mergeExecutionIntoList, resolveExecutionSelection } from "../src/client/executionState";
-import type { Execution } from "../src/server/types";
+import type { ExecutionSummary } from "../src/server/types";
 
 describe("client execution state", () => {
   it("finds the running execution for the selected task", () => {
@@ -12,8 +12,8 @@ describe("client execution state", () => {
 
   it("merges streaming execution updates without losing list order", () => {
     const oldRun = execution({ id: "old", taskId: "task-1", status: "success", startedAt: "2026-05-08T20:00:00.000Z" });
-    const liveRun = execution({ id: "live", taskId: "task-1", status: "running", startedAt: "2026-05-08T21:00:00.000Z", stdout: "first" });
-    const updatedLiveRun = { ...liveRun, stdout: "first\nsecond" };
+    const liveRun = execution({ id: "live", taskId: "task-1", status: "running", startedAt: "2026-05-08T21:00:00.000Z", stdoutSize: 5 });
+    const updatedLiveRun = { ...liveRun, stdoutSize: 12 };
 
     expect(mergeExecutionIntoList([liveRun, oldRun], updatedLiveRun)).toEqual([updatedLiveRun, oldRun]);
   });
@@ -39,7 +39,7 @@ describe("client execution state", () => {
   });
 });
 
-function execution(overrides: Partial<Execution>): Execution {
+function execution(overrides: Partial<ExecutionSummary>): ExecutionSummary {
   return {
     id: "execution-id",
     taskId: "task-id",
@@ -50,8 +50,8 @@ function execution(overrides: Partial<Execution>): Execution {
     finishedAt: "2026-05-08T20:01:00.000Z",
     lastOutputAt: "2026-05-08T20:00:30.000Z",
     exitCode: 0,
-    stdout: "",
-    stderr: "",
+    stdoutSize: 0,
+    stderrSize: 0,
     command: ["codex", "exec"],
     cwd: "/tmp/codex-routines-fixture",
     prompt: "Run",

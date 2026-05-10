@@ -768,7 +768,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   width: 4ch;
 }
 .phrase-pill input[type="time"] { width: 7ch; }
-.phrase-pill input[type="datetime-local"] { width: 16ch; }
+.phrase-pill input[type="datetime-local"] { width: 22ch; }
 .phrase-pill input::-webkit-outer-spin-button,
 .phrase-pill input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
@@ -1071,6 +1071,40 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .modal-output .l-warn { color: var(--warn); }
 .modal-output .l-err { color: var(--danger); }
 .modal-output .l-section { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+
+.modal-output .log-earlier {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.log-earlier-btn {
+  background: transparent;
+  border: 1px dashed var(--line-2);
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: 0.04em;
+  transition: color 140ms, border-color 140ms, background 140ms;
+}
+.log-earlier-btn:hover:not(:disabled) {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: var(--cyan-glow);
+}
+.log-earlier-btn:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+.log-earlier-error {
+  color: var(--danger);
+  font-size: 10.5px;
+}
 
 /* ===================== STATUS BAR (bottom) ===================== */
 .statusbar {

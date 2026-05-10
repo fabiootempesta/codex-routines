@@ -6,8 +6,11 @@ import type {
   CreateTaskInput,
   DatabaseShape,
   Execution,
+  ExecutionOutputChunk,
   ExecutionStatus,
+  ExecutionSummary,
   ExecutionTrigger,
+  OutputStream,
   Task,
   UpdateTaskInput
 } from "./types.js";
@@ -117,8 +120,58 @@ export class JsonStore {
       .slice(0, 200);
   }
 
+  listExecutionSummaries(taskId?: string): ExecutionSummary[] {
+    return this.listExecutions(taskId).map(toExecutionSummary);
+  }
+
   getExecution(id: string): Execution | null {
     return this.database.executions.find((execution) => execution.id === id) ?? null;
+  }
+
+  getExecutionSummary(id: string): ExecutionSummary | null {
+    const execution = this.getExecution(id);
+    return execution ? toExecutionSummary(execution) : null;
+  }
+
+  getExecutionOutput(
+    id: string,
+    stream: OutputStream,
+    range: { from?: number; to?: number; tail?: number } = {}
+  ): ExecutionOutputChunk | null {
+    const execution = this.getExecution(id);
+    if (!execution) return null;
+
+    const source = execution[stream];
+    const totalSize = source.length;
+    const tail = Math.max(0, range.tail ?? totalSize);
+
+    let from: number;
+    let to: number;
+
+    if (range.from === undefined && range.to === undefined) {
+      to = totalSize;
+      from = Math.max(0, totalSize - tail);
+    } else if (range.from === undefined) {
+      to = range.to as number;
+      from = Math.max(0, to - tail);
+    } else if (range.to === undefined) {
+      from = range.from;
+      to = totalSize;
+    } else {
+      from = range.from;
+      to = range.to;
+    }
+
+    from = Math.max(0, Math.min(totalSize, from));
+    to = Math.max(from, Math.min(totalSize, to));
+
+    return {
+      stream,
+      from,
+      to,
+      totalSize,
+      content: source.slice(from, to)
+    };
   }
 
   async createExecution(input: {
@@ -316,4 +369,13 @@ function appendLogLine(current: string, line: string): string {
 
 function compareNewestFirst(left: Task, right: Task): number {
   return right.createdAt.localeCompare(left.createdAt);
+}
+
+function toExecutionSummary(execution: Execution): ExecutionSummary {
+  const { stdout, stderr, ...rest } = execution;
+  return {
+    ...rest,
+    stdoutSize: stdout.length,
+    stderrSize: stderr.length
+  };
 }

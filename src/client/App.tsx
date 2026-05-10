@@ -34,8 +34,10 @@ import {
 } from "./executionState";
 import type {
   CreateTaskInput,
-  Execution,
+  ExecutionOutputChunk,
   ExecutionStatus,
+  ExecutionSummary,
+  OutputStream,
   Task,
   TaskSchedule
 } from "../server/types";
@@ -44,7 +46,7 @@ type DraftTask = CreateTaskInput & { id?: string };
 
 type ApiState = {
   tasks: Task[];
-  executions: Execution[];
+  executions: ExecutionSummary[];
 };
 
 type DaemonState = "online" | "error" | "loading";
@@ -69,7 +71,6 @@ export default function App() {
   const [isResuming, setIsResuming] = useState(false);
   const [filter, setFilter] = useState("");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
 
   const [leftWidth, setLeftWidth] = useState(320);
   const [rightWidth, setRightWidth] = useState(380);
@@ -222,7 +223,7 @@ export default function App() {
       setDaemonState("online");
       const [tasksResponse, executionsResponse] = await Promise.all([
         api<{ tasks: Task[] }>("/api/tasks"),
-        api<{ executions: Execution[] }>("/api/executions")
+        api<{ executions: ExecutionSummary[] }>("/api/executions")
       ]);
       const initialTaskId = tasksResponse.tasks[0]?.id ?? "new";
       setSelectedTaskId(initialTaskId);
@@ -237,7 +238,7 @@ export default function App() {
     try {
       const [tasksResponse, executionsResponse] = await Promise.all([
         api<{ tasks: Task[] }>("/api/tasks"),
-        api<{ executions: Execution[] }>("/api/executions")
+        api<{ executions: ExecutionSummary[] }>("/api/executions")
       ]);
       setDaemonState("online");
       setState({ tasks: tasksResponse.tasks, executions: executionsResponse.executions });
@@ -250,7 +251,7 @@ export default function App() {
 
   async function refreshExecution(executionId: string): Promise<void> {
     try {
-      const response = await api<{ execution: Execution }>(`/api/executions/${executionId}`);
+      const response = await api<{ execution: ExecutionSummary }>(`/api/executions/${executionId}`);
       setState((current) => ({
         ...current,
         executions: mergeExecutionIntoList(current.executions, response.execution)
@@ -305,7 +306,7 @@ export default function App() {
     setIsRunning(true);
     setError(null);
     try {
-      const response = await api<{ execution: Execution }>(`/api/tasks/${draft.id}/run`, {
+      const response = await api<{ execution: ExecutionSummary }>(`/api/tasks/${draft.id}/run`, {
         method: "POST"
       });
       setState((current) => ({
@@ -326,7 +327,7 @@ export default function App() {
     setIsResuming(true);
     setError(null);
     try {
-      const response = await api<{ execution: Execution }>(
+      const response = await api<{ execution: ExecutionSummary }>(
         `/api/executions/${openExecution.id}/resume`,
         { method: "POST" }
       );
@@ -354,17 +355,6 @@ export default function App() {
       await refresh();
     } catch (requestError) {
       setError(toMessage(requestError));
-    }
-  }
-
-  async function copyExecutionOutput(): Promise<void> {
-    if (!openExecution) return;
-    try {
-      await navigator.clipboard.writeText(buildLogText(openExecution));
-      setCopyStatus("copied");
-      setTimeout(() => setCopyStatus("idle"), 1600);
-    } catch {
-      setError("Could not copy to clipboard.");
     }
   }
 
@@ -773,8 +763,6 @@ export default function App() {
           execution={openExecution}
           taskTitle={selectedTask?.title ?? openExecution.taskTitle}
           onClose={() => setOpenExecutionId(null)}
-          onCopy={() => void copyExecutionOutput()}
-          copyStatus={copyStatus}
           onContinue={() => void continueExecution()}
           isResuming={isResuming}
         />
@@ -1084,7 +1072,7 @@ const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /* ----------------------------- run row + modal ----------------------------- */
 
-function RunRow({ execution, onOpen }: { execution: Execution; onOpen: () => void }) {
+function RunRow({ execution, onOpen }: { execution: ExecutionSummary; onOpen: () => void }) {
   const orbClass =
     execution.status === "success"
       ? "success"
@@ -1126,17 +1114,41 @@ function RunRow({ execution, onOpen }: { execution: Execution; onOpen: () => voi
   );
 }
 
+type LogPane = {
+  content: string;
+  from: number;
+  initialized: boolean;
+  loadingEarlier: boolean;
+  error: string | null;
+};
+
+const INITIAL_LOG_TAIL = 64 * 1024;
+const LOAD_EARLIER_CHUNK = 64 * 1024;
+const SCROLL_STICK_THRESHOLD_PX = 32;
+
+function emptyLogPane(): LogPane {
+  return { content: "", from: 0, initialized: false, loadingEarlier: false, error: null };
+}
+
 function ExecutionModal(props: {
-  execution: Execution;
+  execution: ExecutionSummary;
   taskTitle: string;
   onClose: () => void;
-  onCopy: () => void;
-  copyStatus: "idle" | "copied";
   onContinue: () => void;
   isResuming: boolean;
 }) {
-  const { execution, taskTitle, onClose, onCopy, copyStatus, onContinue, isResuming } = props;
+  const { execution, taskTitle, onClose, onContinue, isResuming } = props;
   const continuable = isContinuableExecution(execution);
+  const [stdoutPane, setStdoutPane] = useState<LogPane>(emptyLogPane);
+  const [stderrPane, setStderrPane] = useState<LogPane>(emptyLogPane);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
+  const outputRef = useRef<HTMLPreElement | null>(null);
+  const stickToBottomRef = useRef(true);
+  const stdoutLoadedToRef = useRef(0);
+  const stderrLoadedToRef = useRef(0);
+  const stdoutFetchingRef = useRef(false);
+  const stderrFetchingRef = useRef(false);
+
   const orbClass =
     execution.status === "success"
       ? "success"
@@ -1153,6 +1165,158 @@ function ExecutionModal(props: {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  // Fresh load whenever a different execution is opened.
+  useEffect(() => {
+    let cancelled = false;
+    setStdoutPane(emptyLogPane());
+    setStderrPane(emptyLogPane());
+    stdoutLoadedToRef.current = 0;
+    stderrLoadedToRef.current = 0;
+    stickToBottomRef.current = true;
+
+    void (async () => {
+      const [stdoutChunk, stderrChunk] = await Promise.all([
+        fetchOutputChunk(execution.id, "stdout", { tail: INITIAL_LOG_TAIL }),
+        fetchOutputChunk(execution.id, "stderr", { tail: INITIAL_LOG_TAIL })
+      ]);
+      if (cancelled) return;
+      if (stdoutChunk) {
+        stdoutLoadedToRef.current = stdoutChunk.to;
+        setStdoutPane({
+          content: stdoutChunk.content,
+          from: stdoutChunk.from,
+          initialized: true,
+          loadingEarlier: false,
+          error: null
+        });
+      }
+      if (stderrChunk) {
+        stderrLoadedToRef.current = stderrChunk.to;
+        setStderrPane({
+          content: stderrChunk.content,
+          from: stderrChunk.from,
+          initialized: true,
+          loadingEarlier: false,
+          error: null
+        });
+      }
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        scrollToBottom(outputRef.current);
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [execution.id]);
+
+  // Pull new bytes whenever the parent's metadata reports the stream has grown.
+  useEffect(() => {
+    if (!stdoutPane.initialized) return;
+    if (execution.stdoutSize <= stdoutLoadedToRef.current) return;
+    if (stdoutFetchingRef.current) return;
+    stdoutFetchingRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      const chunk = await fetchOutputChunk(execution.id, "stdout", {
+        from: stdoutLoadedToRef.current
+      });
+      stdoutFetchingRef.current = false;
+      if (cancelled || !chunk || !chunk.content) return;
+      stdoutLoadedToRef.current = chunk.to;
+      setStdoutPane((prev) => ({ ...prev, content: prev.content + chunk.content }));
+      requestAnimationFrame(() => {
+        if (stickToBottomRef.current) scrollToBottom(outputRef.current);
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [execution.id, execution.stdoutSize, stdoutPane.initialized]);
+
+  useEffect(() => {
+    if (!stderrPane.initialized) return;
+    if (execution.stderrSize <= stderrLoadedToRef.current) return;
+    if (stderrFetchingRef.current) return;
+    stderrFetchingRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      const chunk = await fetchOutputChunk(execution.id, "stderr", {
+        from: stderrLoadedToRef.current
+      });
+      stderrFetchingRef.current = false;
+      if (cancelled || !chunk || !chunk.content) return;
+      stderrLoadedToRef.current = chunk.to;
+      setStderrPane((prev) => ({ ...prev, content: prev.content + chunk.content }));
+      requestAnimationFrame(() => {
+        if (stickToBottomRef.current) scrollToBottom(outputRef.current);
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [execution.id, execution.stderrSize, stderrPane.initialized]);
+
+  function trackScroll(): void {
+    const el = outputRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom <= SCROLL_STICK_THRESHOLD_PX;
+  }
+
+  async function loadEarlier(stream: OutputStream): Promise<void> {
+    const pane = stream === "stdout" ? stdoutPane : stderrPane;
+    if (pane.from <= 0 || pane.loadingEarlier) return;
+    const setter = stream === "stdout" ? setStdoutPane : setStderrPane;
+    setter((prev) => ({ ...prev, loadingEarlier: true, error: null }));
+
+    const targetFrom = Math.max(0, pane.from - LOAD_EARLIER_CHUNK);
+    const chunk = await fetchOutputChunk(execution.id, stream, {
+      from: targetFrom,
+      to: pane.from
+    });
+
+    if (!chunk) {
+      setter((prev) => ({ ...prev, loadingEarlier: false, error: "Could not load earlier output." }));
+      return;
+    }
+
+    const el = outputRef.current;
+    const previousScrollHeight = el?.scrollHeight ?? 0;
+    const previousScrollTop = el?.scrollTop ?? 0;
+
+    setter((prev) => ({
+      ...prev,
+      content: chunk.content + prev.content,
+      from: chunk.from,
+      loadingEarlier: false,
+      error: null
+    }));
+
+    requestAnimationFrame(() => {
+      if (!el) return;
+      const delta = el.scrollHeight - previousScrollHeight;
+      el.scrollTop = previousScrollTop + delta;
+    });
+  }
+
+  async function copyOutput(): Promise<void> {
+    try {
+      const text = buildLogText({
+        execution,
+        stdoutPane,
+        stderrPane
+      });
+      await navigator.clipboard.writeText(text);
+      setCopyStatus("copied");
+      window.setTimeout(() => setCopyStatus("idle"), 1600);
+    } catch {
+      setCopyStatus("error");
+      window.setTimeout(() => setCopyStatus("idle"), 1600);
+    }
+  }
 
   return (
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
@@ -1181,9 +1345,9 @@ function ExecutionModal(props: {
                 Continue
               </button>
             )}
-            <button className="btn" type="button" onClick={onCopy}>
+            <button className="btn" type="button" onClick={() => void copyOutput()}>
               {copyStatus === "copied" ? <Check size={14} /> : <Copy size={14} />}
-              {copyStatus === "copied" ? "Copied" : "Copy"}
+              {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Copy failed" : "Copy"}
             </button>
             <button className="icon-btn" type="button" onClick={onClose} title="Close (Esc)">
               <X size={14} />
@@ -1208,13 +1372,26 @@ function ExecutionModal(props: {
             </div>
           </div>
         )}
-        <pre className="modal-output">{renderExecutionOutput(execution)}</pre>
+        <pre className="modal-output" ref={outputRef} onScroll={trackScroll}>
+          {renderExecutionOutput({
+            execution,
+            stdoutPane,
+            stderrPane,
+            onLoadEarlier: (stream) => void loadEarlier(stream)
+          })}
+        </pre>
       </div>
     </div>
   );
 }
 
-function renderExecutionOutput(execution: Execution): ReactNode {
+function renderExecutionOutput(args: {
+  execution: ExecutionSummary;
+  stdoutPane: LogPane;
+  stderrPane: LogPane;
+  onLoadEarlier: (stream: OutputStream) => void;
+}): ReactNode {
+  const { execution, stdoutPane, stderrPane, onLoadEarlier } = args;
   return (
     <>
       <span className="l-cmd">$ {execution.command.join(" ")}</span>
@@ -1223,13 +1400,26 @@ function renderExecutionOutput(execution: Execution): ReactNode {
       {"\n\n"}
       <span className="l-section">[stdout]</span>
       {"\n"}
-      {execution.stdout || (execution.status === "running" ? <span className="l-dim">waiting for codex output...</span> : <span className="l-dim">(empty)</span>)}
-      {execution.stderr && (
+      {renderLogPane({
+        pane: stdoutPane,
+        totalSize: execution.stdoutSize,
+        emptyHint:
+          execution.status === "running" ? "waiting for codex output..." : "(empty)",
+        onLoadEarlier: () => onLoadEarlier("stdout"),
+        toneClass: null
+      })}
+      {(stderrPane.content || execution.stderrSize > 0) && (
         <>
           {"\n\n"}
           <span className="l-section">[stderr]</span>
           {"\n"}
-          <span className="l-warn">{execution.stderr}</span>
+          {renderLogPane({
+            pane: stderrPane,
+            totalSize: execution.stderrSize,
+            emptyHint: "(empty)",
+            onLoadEarlier: () => onLoadEarlier("stderr"),
+            toneClass: "l-warn"
+          })}
         </>
       )}
       {execution.error && (
@@ -1242,6 +1432,78 @@ function renderExecutionOutput(execution: Execution): ReactNode {
       )}
     </>
   );
+}
+
+function renderLogPane(args: {
+  pane: LogPane;
+  totalSize: number;
+  emptyHint: string;
+  onLoadEarlier: () => void;
+  toneClass: string | null;
+}): ReactNode {
+  const { pane, totalSize, emptyHint, onLoadEarlier, toneClass } = args;
+  const earlierAvailable = pane.from > 0;
+  const showEmpty = pane.initialized && totalSize === 0;
+  const showLoading = !pane.initialized && totalSize > 0;
+  const content = toneClass ? <span className={toneClass}>{pane.content}</span> : pane.content;
+  return (
+    <>
+      {earlierAvailable && (
+        <span className="log-earlier">
+          <button
+            type="button"
+            className="log-earlier-btn"
+            onClick={onLoadEarlier}
+            disabled={pane.loadingEarlier}
+          >
+            {pane.loadingEarlier
+              ? "Loading earlier…"
+              : `↑ Load earlier (${formatBytes(pane.from)} hidden)`}
+          </button>
+          {pane.error && <span className="log-earlier-error">{pane.error}</span>}
+          {"\n"}
+        </span>
+      )}
+      {showLoading ? (
+        <span className="l-dim">loading recent output…</span>
+      ) : showEmpty ? (
+        <span className="l-dim">{emptyHint}</span>
+      ) : (
+        content
+      )}
+    </>
+  );
+}
+
+async function fetchOutputChunk(
+  executionId: string,
+  stream: OutputStream,
+  range: { from?: number; to?: number; tail?: number }
+): Promise<ExecutionOutputChunk | null> {
+  const params = new URLSearchParams();
+  params.set("stream", stream);
+  if (range.from !== undefined) params.set("from", String(range.from));
+  if (range.to !== undefined) params.set("to", String(range.to));
+  if (range.tail !== undefined) params.set("tail", String(range.tail));
+  try {
+    const response = await api<{ output: ExecutionOutputChunk }>(
+      `/api/executions/${executionId}/output?${params.toString()}`
+    );
+    return response.output;
+  } catch {
+    return null;
+  }
+}
+
+function scrollToBottom(el: HTMLElement | null): void {
+  if (!el) return;
+  el.scrollTop = el.scrollHeight;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /* ----------------------------- helpers ----------------------------- */
@@ -1387,11 +1649,11 @@ function computeFromWeeklyTime(dayOfWeek: number, time: string, count: number): 
   return items;
 }
 
-function isTaskRunning(executions: Execution[], taskId: string): boolean {
+function isTaskRunning(executions: ExecutionSummary[], taskId: string): boolean {
   return executions.some((e) => e.taskId === taskId && e.status === "running");
 }
 
-function recentExecutionStatuses(executions: Execution[], taskId: string): ExecutionStatus[] {
+function recentExecutionStatuses(executions: ExecutionSummary[], taskId: string): ExecutionStatus[] {
   return executions
     .filter((e) => e.taskId === taskId)
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
@@ -1400,7 +1662,7 @@ function recentExecutionStatuses(executions: Execution[], taskId: string): Execu
     .map((e) => e.status);
 }
 
-function buildRibbonTicks(tasks: Task[], executions: Execution[]): RibbonTick[] {
+function buildRibbonTicks(tasks: Task[], executions: ExecutionSummary[]): RibbonTick[] {
   const now = Date.now();
   const horizon = now + RIBBON_HORIZON_MS;
   const ticks: RibbonTick[] = [];
@@ -1548,7 +1810,7 @@ function formatDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-function describeDuration(execution: Execution): string {
+function describeDuration(execution: ExecutionSummary): string {
   if (execution.status === "running") return "live";
   if (!execution.finishedAt) return "—";
   const diffMs = new Date(execution.finishedAt).getTime() - new Date(execution.startedAt).getTime();
@@ -1569,12 +1831,21 @@ function toDatetimeLocal(date: Date): string {
   return local.toISOString().slice(0, 16);
 }
 
-function buildLogText(execution: Execution): string {
+function buildLogText(args: {
+  execution: ExecutionSummary;
+  stdoutPane: LogPane;
+  stderrPane: LogPane;
+}): string {
+  const { execution, stdoutPane, stderrPane } = args;
   const command = `$ ${execution.command.join(" ")}`;
+  const stdoutHidden = stdoutPane.from > 0 ? `… ${formatBytes(stdoutPane.from)} earlier hidden\n` : "";
+  const stderrHidden = stderrPane.from > 0 ? `… ${formatBytes(stderrPane.from)} earlier hidden\n` : "";
+  const stdoutBody = stdoutPane.content || (execution.status === "running" ? "waiting for codex output..." : "");
+  const stdout = `\n\n[stdout]\n${stdoutHidden}${stdoutBody}`;
+  const stderr = stderrPane.content || stderrHidden
+    ? `\n\n[stderr]\n${stderrHidden}${stderrPane.content}`
+    : "";
   const error = execution.error ? `\n\n[error]\n${execution.error}` : "";
-  const stderr = execution.stderr ? `\n\n[stderr]\n${execution.stderr}` : "";
-  const empty = execution.status === "running" ? "waiting for codex output..." : "";
-  const stdout = `\n\n[stdout]\n${execution.stdout || empty}`;
   return `${command}\n\ncwd: ${execution.cwd}${stdout}${stderr}${error}`;
 }
 

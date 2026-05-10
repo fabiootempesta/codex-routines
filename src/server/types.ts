@@ -76,6 +76,21 @@ export type Execution = {
   staleReason: string | null;
 };
 
+export type ExecutionSummary = Omit<Execution, "stdout" | "stderr"> & {
+  stdoutSize: number;
+  stderrSize: number;
+};
+
+export type OutputStream = "stdout" | "stderr";
+
+export type ExecutionOutputChunk = {
+  stream: OutputStream;
+  from: number;
+  to: number;
+  totalSize: number;
+  content: string;
+};
+
 export type DatabaseShape = {
   tasks: Task[];
   executions: Execution[];

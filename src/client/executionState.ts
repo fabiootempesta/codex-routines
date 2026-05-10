@@ -1,19 +1,22 @@
-import type { Execution } from "../server/types";
+import type { ExecutionSummary } from "../server/types";
 
-export function findRunningExecution(executions: Execution[], taskId: string): Execution | null {
+export function findRunningExecution(executions: ExecutionSummary[], taskId: string): ExecutionSummary | null {
   return executions
     .filter((execution) => execution.taskId === taskId && execution.status === "running")
     .sort(compareExecutionNewestFirst)[0] ?? null;
 }
 
-export function mergeExecutionIntoList(executions: Execution[], execution: Execution): Execution[] {
+export function mergeExecutionIntoList(
+  executions: ExecutionSummary[],
+  execution: ExecutionSummary
+): ExecutionSummary[] {
   const withoutCurrent = executions.filter((item) => item.id !== execution.id);
   return [execution, ...withoutCurrent].sort(compareExecutionNewestFirst);
 }
 
 export function resolveExecutionSelection(input: {
   currentId: string | null;
-  executions: Execution[];
+  executions: ExecutionSummary[];
   taskId: string;
   preferRunning?: boolean;
 }): string | null {
@@ -29,11 +32,11 @@ export function resolveExecutionSelection(input: {
   return input.executions[0]?.id ?? null;
 }
 
-export function isContinuableExecution(execution: Execution | null): boolean {
+export function isContinuableExecution(execution: ExecutionSummary | null): boolean {
   if (!execution?.resumeSessionId) return false;
   return execution.status === "stale" || execution.status === "failed";
 }
 
-function compareExecutionNewestFirst(left: Execution, right: Execution): number {
+function compareExecutionNewestFirst(left: ExecutionSummary, right: ExecutionSummary): number {
   return right.startedAt.localeCompare(left.startedAt);
 }

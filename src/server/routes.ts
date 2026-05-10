@@ -4,6 +4,10 @@ import os from "node:os";
 import { z } from "zod";
 import { assertDirectory, JsonStore } from "./store.js";
 import type { Scheduler } from "./scheduler.js";
+import type { Execution, ExecutionSummary } from "./types.js";
+
+const DEFAULT_OUTPUT_TAIL = 64 * 1024;
+const MAX_OUTPUT_LENGTH = 1024 * 1024;
 
 const scheduleSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("manual") }),
@@ -87,17 +91,17 @@ export function createApiRouter(store: JsonStore, scheduler: Scheduler): Router 
     "/tasks/:id/run",
     asyncHandler(async (request, response) => {
       const execution = await scheduler.runTaskNow(request.params.id);
-      response.status(202).json({ execution });
+      response.status(202).json({ execution: toSummary(execution) });
     })
   );
 
   router.get("/executions", (request, response) => {
     const taskId = typeof request.query.taskId === "string" ? request.query.taskId : undefined;
-    response.json({ executions: store.listExecutions(taskId) });
+    response.json({ executions: store.listExecutionSummaries(taskId) });
   });
 
   router.get("/executions/:id", (request, response) => {
-    const execution = store.getExecution(request.params.id);
+    const execution = store.getExecutionSummary(request.params.id);
 
     if (!execution) {
       response.status(404).json({ error: "Execution not found." });
@@ -107,11 +111,37 @@ export function createApiRouter(store: JsonStore, scheduler: Scheduler): Router 
     response.json({ execution });
   });
 
+  router.get("/executions/:id/output", (request, response) => {
+    const stream = request.query.stream === "stderr" ? "stderr" : "stdout";
+    const from = parseIntParam(request.query.from);
+    const to = parseIntParam(request.query.to);
+    const tail = parseIntParam(request.query.tail) ?? DEFAULT_OUTPUT_TAIL;
+
+    const requested = (to ?? Infinity) - (from ?? 0);
+    if (Number.isFinite(requested) && requested > MAX_OUTPUT_LENGTH) {
+      response.status(400).json({ error: `Range exceeds ${MAX_OUTPUT_LENGTH} bytes.` });
+      return;
+    }
+
+    const output = store.getExecutionOutput(request.params.id, stream, {
+      from: from ?? undefined,
+      to: to ?? undefined,
+      tail
+    });
+
+    if (!output) {
+      response.status(404).json({ error: "Execution not found." });
+      return;
+    }
+
+    response.json({ output });
+  });
+
   router.post(
     "/executions/:id/resume",
     asyncHandler(async (request, response) => {
       const execution = await scheduler.resumeExecution(request.params.id);
-      response.status(202).json({ execution });
+      response.status(202).json({ execution: toSummary(execution) });
     })
   );
 
@@ -133,4 +163,19 @@ function asyncHandler(
   return (request: Request, response: Response, next: NextFunction) => {
     handler(request, response, next).catch(next);
   };
+}
+
+function toSummary(execution: Execution): ExecutionSummary {
+  const { stdout, stderr, ...rest } = execution;
+  return {
+    ...rest,
+    stdoutSize: stdout.length,
+    stderrSize: stderr.length
+  };
+}
+
+function parseIntParam(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
