@@ -75,6 +75,21 @@ describe("execution recovery state", () => {
     expect(stale).toEqual([]);
     expect(store.getExecution(execution.id)?.status).toBe("running");
   });
+
+  it("uses a pre-generated execution id so the scheduler can register it before the DB write resolves", async () => {
+    const task = await store.createTask(taskInput());
+    const reservedId = "019e131e-b650-7e10-939c-cd95a88fd5bc";
+
+    const execution = await store.createExecution({
+      id: reservedId,
+      task,
+      trigger: "manual",
+      command: ["codex", "exec"]
+    });
+
+    expect(execution.id).toBe(reservedId);
+    expect(store.getExecution(reservedId)?.id).toBe(reservedId);
+  });
 });
 
 function taskInput(): Omit<Task, "id" | "nextRunAt" | "lastRunAt" | "createdAt" | "updatedAt"> {

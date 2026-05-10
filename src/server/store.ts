@@ -122,6 +122,7 @@ export class JsonStore {
   }
 
   async createExecution(input: {
+    id?: string;
     task: Task;
     trigger: ExecutionTrigger;
     command: string[];
@@ -132,7 +133,7 @@ export class JsonStore {
     return this.mutate(() => {
       const now = new Date();
       const execution: Execution = {
-        id: randomUUID(),
+        id: input.id ?? randomUUID(),
         taskId: input.task.id,
         taskTitle: input.task.title,
         trigger: input.trigger,

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { buildCodexCommand, buildCodexResumeCommand, formatCommand, runCodexCommand } from "./runner.js";
 import type { JsonStore } from "./store.js";
 import type { Execution, ExecutionTrigger, Task } from "./types.js";
@@ -93,17 +94,31 @@ export class Scheduler {
       throw new Error("This task is already running.");
     }
 
+    // Reserve the execution id and register it before awaiting the DB write.
+    // Otherwise reconcileUntrackedExecutions can race with createExecution and
+    // mark this run "stale" before launchTask resumes to add it to the set.
+    const executionId = randomUUID();
     this.runningTaskIds.add(task.id);
+    this.runningExecutionIds.add(executionId);
+
     const command = options.command ?? buildCodexCommand(task.cwd);
-    const execution = await this.store.createExecution({
-      task,
-      trigger,
-      command: formatCommand(command),
-      prompt: options.prompt,
-      resumeSessionId: options.resumeSessionId,
-      resumedFromExecutionId: options.resumedFromExecutionId
-    });
-    this.runningExecutionIds.add(execution.id);
+
+    let execution: Execution;
+    try {
+      execution = await this.store.createExecution({
+        id: executionId,
+        task,
+        trigger,
+        command: formatCommand(command),
+        prompt: options.prompt,
+        resumeSessionId: options.resumeSessionId,
+        resumedFromExecutionId: options.resumedFromExecutionId
+      });
+    } catch (error) {
+      this.runningTaskIds.delete(task.id);
+      this.runningExecutionIds.delete(executionId);
+      throw error;
+    }
 
     void this.executeTask(task, execution.id, command, options.prompt ?? task.prompt);
     return execution;
