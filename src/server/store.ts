@@ -1,18 +1,23 @@
 import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { CANCEL_GRACE_MS, CONTINUOUS_MIN_GAP_MS } from "./constants.js";
 import { getNextRunAt } from "./schedules.js";
-import type {
-  CreateTaskInput,
-  DatabaseShape,
-  Execution,
-  ExecutionOutputChunk,
-  ExecutionStatus,
-  ExecutionSummary,
-  ExecutionTrigger,
-  OutputStream,
-  Task,
-  UpdateTaskInput
+import {
+  DEFAULT_CODEX_EFFORT,
+  DEFAULT_CODEX_MODEL,
+  type CodexEffort,
+  type CodexModel,
+  type CreateTaskInput,
+  type DatabaseShape,
+  type Execution,
+  type ExecutionOutputChunk,
+  type ExecutionStatus,
+  type ExecutionSummary,
+  type ExecutionTrigger,
+  type OutputStream,
+  type Task,
+  type UpdateTaskInput
 } from "./types.js";
 
 const defaultDatabase: DatabaseShape = {
@@ -65,6 +70,8 @@ export class JsonStore {
         cwd: input.cwd,
         schedule: input.schedule,
         enabled: input.enabled,
+        effort: input.effort ?? DEFAULT_CODEX_EFFORT,
+        model: input.model ?? DEFAULT_CODEX_MODEL,
         nextRunAt: input.enabled ? getNextRunAt(input.schedule, now)?.toISOString() ?? null : null,
         lastRunAt: null,
         createdAt: now.toISOString(),
@@ -90,6 +97,8 @@ export class JsonStore {
       if (input.cwd !== undefined) task.cwd = input.cwd;
       if (input.schedule !== undefined) task.schedule = input.schedule;
       if (input.enabled !== undefined) task.enabled = input.enabled;
+      if (input.effort !== undefined) task.effort = input.effort ?? null;
+      if (input.model !== undefined) task.model = input.model ?? null;
 
       const scheduleChanged = previousSchedule !== JSON.stringify(task.schedule);
       const enabledChanged = previousEnabled !== task.enabled;
@@ -180,6 +189,8 @@ export class JsonStore {
     trigger: ExecutionTrigger;
     command: string[];
     prompt?: string;
+    effort: CodexEffort;
+    model: CodexModel;
     resumeSessionId?: string | null;
     resumedFromExecutionId?: string | null;
   }): Promise<Execution> {
@@ -200,12 +211,15 @@ export class JsonStore {
         command: input.command,
         cwd: input.task.cwd,
         prompt: input.prompt ?? input.task.prompt,
+        effort: input.effort,
+        model: input.model,
         error: null,
         processId: null,
         resumeSessionId: input.resumeSessionId ?? null,
         resumedFromExecutionId: input.resumedFromExecutionId ?? null,
         staleAt: null,
-        staleReason: null
+        staleReason: null,
+        cancelRequestedAt: null
       };
 
       this.database.executions.push(execution);
@@ -233,13 +247,32 @@ export class JsonStore {
     });
   }
 
+  async markExecutionCancelRequested(id: string): Promise<Execution | null> {
+    return this.mutate(() => {
+      const execution = this.getExecution(id);
+      if (!execution) return null;
+      if (execution.status !== "running") return execution;
+      if (execution.cancelRequestedAt) return execution;
+      execution.cancelRequestedAt = new Date().toISOString();
+      return execution;
+    });
+  }
+
   async markUntrackedRunningExecutions(activeExecutionIds: Set<string>, now = new Date()): Promise<Execution[]> {
     return this.mutate(() => {
       const staleAt = now.toISOString();
+      const graceCutoff = now.getTime() - CANCEL_GRACE_MS;
       const stale: Execution[] = [];
 
       for (const execution of this.database.executions) {
         if (execution.status !== "running" || activeExecutionIds.has(execution.id)) continue;
+
+        if (
+          execution.cancelRequestedAt &&
+          new Date(execution.cancelRequestedAt).getTime() >= graceCutoff
+        ) {
+          continue;
+        }
 
         const reason = execution.processId
           ? `Orphaned execution: the platform is no longer tracking process ${execution.processId}.`
@@ -285,6 +318,8 @@ export class JsonStore {
 
       if (!task.enabled || task.schedule.type === "manual") {
         task.nextRunAt = null;
+      } else if (task.schedule.type === "continuous") {
+        task.nextRunAt = new Date(now.getTime() + CONTINUOUS_MIN_GAP_MS).toISOString();
       } else {
         task.nextRunAt = getNextRunAt(task.schedule, now)?.toISOString() ?? null;
       }
@@ -338,8 +373,16 @@ export async function assertDirectory(directory: string): Promise<void> {
 
 function normalizeDatabase(input: Partial<DatabaseShape>): DatabaseShape {
   return {
-    tasks: Array.isArray(input.tasks) ? input.tasks : [],
+    tasks: Array.isArray(input.tasks) ? input.tasks.map(normalizeTask) : [],
     executions: Array.isArray(input.executions) ? input.executions.map(normalizeExecution) : []
+  };
+}
+
+function normalizeTask(input: Task): Task {
+  return {
+    ...input,
+    effort: input.effort === undefined ? DEFAULT_CODEX_EFFORT : input.effort ?? null,
+    model: input.model === undefined ? DEFAULT_CODEX_MODEL : input.model ?? null
   };
 }
 
@@ -352,9 +395,12 @@ function normalizeExecution(input: Execution): Execution {
     lastOutputAt,
     processId: input.processId ?? null,
     resumeSessionId,
+    effort: input.effort ?? null,
+    model: input.model ?? null,
     resumedFromExecutionId: input.resumedFromExecutionId ?? null,
     staleAt: input.staleAt ?? null,
-    staleReason: input.staleReason ?? null
+    staleReason: input.staleReason ?? null,
+    cancelRequestedAt: input.cancelRequestedAt ?? null
   };
 }
 

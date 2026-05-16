@@ -1,5 +1,5 @@
-import { spawn } from "node:child_process";
-import type { Task } from "./types.js";
+import { spawn, type ChildProcess } from "node:child_process";
+import type { CodexEffort, CodexModel, Task } from "./types.js";
 
 export type CodexCommand = {
   file: string;
@@ -8,19 +8,34 @@ export type CodexCommand = {
 
 export type CodexRunResult = {
   exitCode: number | null;
+  signal: NodeJS.Signals | null;
 };
 
 export type CodexRunEvents = {
-  onStart?: (pid: number) => void | Promise<void>;
+  onStart?: (child: ChildProcess) => void | Promise<void>;
   onStdout?: (chunk: string) => void | Promise<void>;
   onStderr?: (chunk: string) => void | Promise<void>;
 };
 
-export function buildCodexCommand(cwd: string): CodexCommand {
+function modelArgs(model: CodexModel): string[] {
+  return model ? ["--model", model] : [];
+}
+
+function effortArgs(effort: CodexEffort): string[] {
+  return effort ? ["-c", `model_reasoning_effort=${effort}`] : [];
+}
+
+export function buildCodexCommand(
+  cwd: string,
+  effort: CodexEffort = null,
+  model: CodexModel = null
+): CodexCommand {
   return {
     file: "codex",
     args: [
       "exec",
+      ...modelArgs(model),
+      ...effortArgs(effort),
       "--dangerously-bypass-approvals-and-sandbox",
       "--skip-git-repo-check",
       "--color",
@@ -32,11 +47,17 @@ export function buildCodexCommand(cwd: string): CodexCommand {
   };
 }
 
-export function buildCodexResumeCommand(sessionId: string): CodexCommand {
+export function buildCodexResumeCommand(
+  sessionId: string,
+  effort: CodexEffort = null,
+  model: CodexModel = null
+): CodexCommand {
   return {
     file: "codex",
     args: [
       "exec",
+      ...modelArgs(model),
+      ...effortArgs(effort),
       "--dangerously-bypass-approvals-and-sandbox",
       "--skip-git-repo-check",
       "--color",
@@ -53,7 +74,12 @@ export function formatCommand(command: CodexCommand): string[] {
 }
 
 export function runCodexTask(task: Task, events: CodexRunEvents = {}): Promise<CodexRunResult> {
-  return runCodexCommand(buildCodexCommand(task.cwd), task.cwd, task.prompt, events);
+  return runCodexCommand(
+    buildCodexCommand(task.cwd, task.effort ?? null, task.model ?? null),
+    task.cwd,
+    task.prompt,
+    events
+  );
 }
 
 export function runCodexCommand(
@@ -63,31 +89,30 @@ export function runCodexCommand(
   events: CodexRunEvents = {}
 ): Promise<CodexRunResult> {
   return new Promise((resolve, reject) => {
-    let child;
+    let child: ChildProcess;
 
     try {
       child = spawn(command.file, command.args, {
         cwd,
         env: process.env,
-        stdio: ["pipe", "pipe", "pipe"]
+        stdio: ["pipe", "pipe", "pipe"],
+        detached: true
       });
     } catch (error) {
       reject(error);
       return;
     }
 
-    if (child.pid) {
-      void events.onStart?.(child.pid);
-    }
+    void events.onStart?.(child);
 
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
 
-    child.stdout.on("data", (chunk: string) => {
+    child.stdout?.on("data", (chunk: string) => {
       void events.onStdout?.(chunk);
     });
 
-    child.stderr.on("data", (chunk: string) => {
+    child.stderr?.on("data", (chunk: string) => {
       void events.onStderr?.(chunk);
     });
 
@@ -95,11 +120,11 @@ export function runCodexCommand(
       reject(error);
     });
 
-    child.on("close", (exitCode) => {
-      resolve({ exitCode });
+    child.on("close", (exitCode, signal) => {
+      resolve({ exitCode, signal });
     });
 
-    child.stdin.write(prompt);
-    child.stdin.end();
+    child.stdin?.write(prompt);
+    child.stdin?.end();
   });
 }

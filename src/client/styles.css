@@ -386,6 +386,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .status-orb.failed { background: var(--danger); }
 .status-orb.success { background: var(--ok); }
 .status-orb.stale { background: var(--warn); }
+.status-orb.cancelled { background: var(--muted-2); }
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 var(--cyan-glow); }
   70% { box-shadow: 0 0 0 8px transparent; }
@@ -434,6 +435,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .sparkline span.success { background: var(--ok); }
 .sparkline span.failed { background: var(--danger); }
 .sparkline span.stale { background: var(--warn); }
+.sparkline span.cancelled { background: var(--muted-2); }
 .sparkline span.running { background: var(--cyan); animation: bar 1.4s ease-in-out infinite; }
 @keyframes bar {
   0%,100% { opacity: 0.4; }
@@ -822,6 +824,59 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .next-runs-tick.future .dot { background: var(--surface-4); box-shadow: none; }
 .next-runs-tick .label { white-space: nowrap; color: var(--ink-2); }
 .next-runs-tick.next .label { color: var(--cyan); }
+
+/* effort selector */
+.effort-row {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+}
+.effort-opt {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono);
+  transition: all 140ms;
+}
+.effort-opt:hover { border-color: var(--line-2); color: var(--ink-2); }
+.effort-opt.active {
+  background: var(--cyan-soft);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.effort-opt .bars { display: inline-flex; gap: 2px; align-items: flex-end; }
+.effort-opt .bars i {
+  width: 3px; border-radius: 1px;
+  background: currentColor; opacity: 0.4;
+}
+
+/* model selector */
+.model-row {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+}
+.model-opt {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono);
+  transition: all 140ms;
+}
+.model-opt:hover { border-color: var(--line-2); color: var(--ink-2); }
+.model-opt.active {
+  background: var(--cyan-soft);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
 
 /* prompt editor */
 .prompt {

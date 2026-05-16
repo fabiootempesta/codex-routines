@@ -52,4 +52,13 @@ describe("getNextRunAt", () => {
 
     expect(nextRun).toBeNull();
   });
+
+  it("schedules continuous runs with a short gap to avoid tight-loops", () => {
+    const nextRun = getNextRunAt(
+      { type: "continuous" },
+      new Date("2026-05-16T19:00:00.000Z")
+    );
+
+    expect(nextRun?.toISOString()).toBe("2026-05-16T19:00:03.000Z");
+  });
 });

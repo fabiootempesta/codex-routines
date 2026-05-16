@@ -55,12 +55,15 @@ function execution(overrides: Partial<ExecutionSummary>): ExecutionSummary {
     command: ["codex", "exec"],
     cwd: "/tmp/codex-routines-fixture",
     prompt: "Run",
+    effort: null,
+    model: null,
     error: null,
     processId: null,
     resumeSessionId: null,
     resumedFromExecutionId: null,
     staleAt: null,
     staleReason: null,
+    cancelRequestedAt: null,
     ...overrides
   };
 }

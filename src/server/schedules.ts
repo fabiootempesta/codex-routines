@@ -1,4 +1,5 @@
 import { Cron } from "croner";
+import { CONTINUOUS_MIN_GAP_MS } from "./constants.js";
 import type { TaskSchedule } from "./types.js";
 
 const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -35,6 +36,10 @@ export function getNextRunAt(schedule: TaskSchedule, from = new Date()): Date | 
     return nextWeeklyTime(from, schedule.dayOfWeek, hours, minutes);
   }
 
+  if (schedule.type === "continuous") {
+    return new Date(from.getTime() + CONTINUOUS_MIN_GAP_MS);
+  }
+
   const job = new Cron(schedule.expression, { paused: true });
   const nextRun = job.nextRun(from);
   job.stop();
@@ -47,6 +52,7 @@ export function describeSchedule(schedule: TaskSchedule): string {
   if (schedule.type === "interval") return `every ${schedule.everyMinutes} min`;
   if (schedule.type === "daily") return `daily at ${schedule.time}`;
   if (schedule.type === "weekly") return `weekly on day ${schedule.dayOfWeek} at ${schedule.time}`;
+  if (schedule.type === "continuous") return "continuous";
   return `cron ${schedule.expression}`;
 }
 

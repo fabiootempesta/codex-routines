@@ -28,13 +28,40 @@ export type CronSchedule = {
   expression: string;
 };
 
+export type ContinuousSchedule = {
+  type: "continuous";
+};
+
 export type TaskSchedule =
   | ManualSchedule
   | OnceSchedule
   | IntervalSchedule
   | DailySchedule
   | WeeklySchedule
-  | CronSchedule;
+  | CronSchedule
+  | ContinuousSchedule;
+
+export type CodexEffort = "low" | "medium" | "high" | "xhigh" | null;
+
+export const codexEffortOptions: Array<Exclude<CodexEffort, null>> = [
+  "low",
+  "medium",
+  "high",
+  "xhigh"
+];
+
+export type CodexModel = string | null;
+
+export const codexModelOptions: Array<{ id: string; label: string }> = [
+  { id: "gpt-5.5", label: "GPT-5.5" },
+  { id: "gpt-5", label: "GPT-5" },
+  { id: "gpt-5-codex", label: "GPT-5 Codex" },
+  { id: "o3", label: "o3" },
+  { id: "o4-mini", label: "o4-mini" }
+];
+
+export const DEFAULT_CODEX_EFFORT: CodexEffort = "xhigh";
+export const DEFAULT_CODEX_MODEL: CodexModel = "gpt-5.5";
 
 export type Task = {
   id: string;
@@ -43,13 +70,15 @@ export type Task = {
   cwd: string;
   schedule: TaskSchedule;
   enabled: boolean;
+  effort: CodexEffort;
+  model: CodexModel;
   nextRunAt: string | null;
   lastRunAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
-export type ExecutionStatus = "running" | "success" | "failed" | "stale";
+export type ExecutionStatus = "running" | "success" | "failed" | "stale" | "cancelled";
 
 export type ExecutionTrigger = "manual" | "scheduled" | "resume";
 
@@ -68,12 +97,15 @@ export type Execution = {
   command: string[];
   cwd: string;
   prompt: string;
+  effort: CodexEffort;
+  model: CodexModel;
   error: string | null;
   processId: number | null;
   resumeSessionId: string | null;
   resumedFromExecutionId: string | null;
   staleAt: string | null;
   staleReason: string | null;
+  cancelRequestedAt: string | null;
 };
 
 export type ExecutionSummary = Omit<Execution, "stdout" | "stderr"> & {
@@ -102,6 +134,8 @@ export type CreateTaskInput = {
   cwd: string;
   schedule: TaskSchedule;
   enabled: boolean;
+  effort: CodexEffort;
+  model: CodexModel;
 };
 
 export type UpdateTaskInput = Partial<CreateTaskInput>;

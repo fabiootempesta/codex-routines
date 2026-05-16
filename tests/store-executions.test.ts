@@ -24,7 +24,9 @@ describe("execution recovery state", () => {
     const execution = await store.createExecution({
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
 
     const originalLastOutputAt = execution.lastOutputAt;
@@ -45,7 +47,9 @@ describe("execution recovery state", () => {
     const execution = await store.createExecution({
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
 
     await store.appendExecutionOutput(
@@ -67,7 +71,9 @@ describe("execution recovery state", () => {
     const execution = await store.createExecution({
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
 
     const stale = await store.markUntrackedRunningExecutions(new Set([execution.id]), new Date("2026-05-09T18:30:00.000Z"));
@@ -84,7 +90,9 @@ describe("execution recovery state", () => {
       id: reservedId,
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
 
     expect(execution.id).toBe(reservedId);
@@ -96,7 +104,9 @@ describe("execution recovery state", () => {
     const execution = await store.createExecution({
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
     await store.appendExecutionOutput(execution.id, "stdout", "hello world");
     await store.appendExecutionOutput(execution.id, "stderr", "warn 1\nwarn 2");
@@ -114,7 +124,9 @@ describe("execution recovery state", () => {
     const execution = await store.createExecution({
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
     await store.appendExecutionOutput(execution.id, "stdout", "0123456789ABCDEFGHIJ");
 
@@ -134,7 +146,9 @@ describe("execution recovery state", () => {
     const execution = await store.createExecution({
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
     await store.appendExecutionOutput(execution.id, "stderr", "0123456789ABCDEFGHIJ");
 
@@ -151,7 +165,9 @@ describe("execution recovery state", () => {
     const execution = await store.createExecution({
       task,
       trigger: "manual",
-      command: ["codex", "exec"]
+      command: ["codex", "exec"],
+      effort: null,
+      model: null
     });
     await store.appendExecutionOutput(execution.id, "stdout", "first");
     await store.appendExecutionOutput(execution.id, "stdout", "-then-more");
@@ -170,6 +186,8 @@ function taskInput(): Omit<Task, "id" | "nextRunAt" | "lastRunAt" | "createdAt" 
     prompt: "Process PRs",
     cwd: tempDir,
     schedule: { type: "manual" },
-    enabled: true
+    enabled: true,
+    effort: null,
+    model: null
   };
 }
