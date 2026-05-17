@@ -79,6 +79,34 @@ export class Scheduler {
     });
   }
 
+  async messageExecution(executionId: string, message: string): Promise<Execution> {
+    const sourceExecution = this.store.getExecution(executionId);
+    if (!sourceExecution) {
+      throw new HttpError(404, "Execution not found.");
+    }
+
+    const task = this.store.getTask(sourceExecution.taskId);
+    if (!task) {
+      throw new HttpError(404, "Execution task not found.");
+    }
+
+    if (!sourceExecution.resumeSessionId) {
+      throw new HttpError(409, "This execution does not have a Codex session id yet.");
+    }
+
+    const prompt = message.trim();
+    if (!prompt) {
+      throw new HttpError(400, "Message is required.");
+    }
+
+    return this.launchTask(task, "message", {
+      command: buildCodexResumeCommand(sourceExecution.resumeSessionId, task.effort ?? null, task.model ?? null),
+      prompt,
+      resumeSessionId: sourceExecution.resumeSessionId,
+      resumedFromExecutionId: sourceExecution.id
+    });
+  }
+
   async cancelExecution(executionId: string): Promise<{ status: "cancelling" | "already_finished" }> {
     const execution = this.store.getExecution(executionId);
     if (!execution) {

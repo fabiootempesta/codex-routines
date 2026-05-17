@@ -697,19 +697,21 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 .sched-modes {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(72px, 1fr));
   gap: 1px;
   background: var(--line);
   border-bottom: 1px solid var(--line);
 }
 .sched-modes button {
   background: var(--surface);
-  padding: 10px 6px;
-  font-size: 11.5px;
+  padding: 9px 4px;
+  font-size: 11px;
   color: var(--muted);
-  display: grid; place-items: center; gap: 4px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
   font-family: var(--font-mono);
   transition: all 140ms;
+  min-width: 0;
+  white-space: nowrap;
 }
 .sched-modes button:hover { background: var(--surface-2); color: var(--ink-2); }
 .sched-modes button.active {
@@ -718,13 +720,21 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 .sched-modes button.active::after {
   content: "";
-  display: block;
-  width: 16px; height: 2px;
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 18px; height: 2px;
   background: var(--cyan);
   border-radius: 2px;
-  margin-top: 2px;
 }
-.sched-modes button .ico { font-size: 13px; opacity: 0.8; }
+.sched-modes button { position: relative; }
+.sched-modes button .sched-icon { flex-shrink: 0; opacity: 0.9; }
+.sched-modes button .sched-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .sched-body {
   padding: 18px 18px 14px;
@@ -771,6 +781,24 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 .phrase-pill input[type="time"] { width: 7ch; }
 .phrase-pill input[type="datetime-local"] { width: 22ch; }
+.phrase-pill.stop-pill {
+  border-radius: 8px;
+  gap: 8px;
+}
+.pill-clear {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-3);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+.pill-clear:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
 .phrase-pill input::-webkit-outer-spin-button,
 .phrase-pill input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
@@ -1060,8 +1088,8 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   border: 1px solid var(--line-2);
   border-radius: 14px;
   box-shadow: 0 30px 80px oklch(8% 0.012 252 / 0.6);
-  display: grid;
-  grid-template-rows: auto auto 1fr;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   animation: rise 180ms ease-out;
 }
@@ -1108,6 +1136,34 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   border-radius: 4px;
 }
 
+.message-panel {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.message-panel textarea {
+  min-width: 0;
+  resize: vertical;
+  max-height: 140px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.message-panel textarea:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-glow);
+}
+
 .modal-output {
   margin: 0;
   background: var(--bg);
@@ -1120,6 +1176,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   overflow-wrap: anywhere;
   overflow-y: auto;
   min-height: 0;
+  flex: 1;
 }
 .modal-output .l-cmd { color: var(--cyan); }
 .modal-output .l-dim { color: var(--muted); }
@@ -1218,6 +1275,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   .meta > div:nth-child(2n) { border-right: 0; }
   .meta > div:nth-child(n+3) { border-top: 1px solid var(--line); }
   .sched-modes { grid-template-columns: repeat(3, 1fr); }
+  .message-panel { grid-template-columns: 1fr; }
   .editor-title { font-size: 18px; }
   .editor-actions { flex-wrap: wrap; }
   .editor-title-row { grid-template-columns: 1fr; }

@@ -37,7 +37,15 @@ export function getNextRunAt(schedule: TaskSchedule, from = new Date()): Date | 
   }
 
   if (schedule.type === "continuous") {
-    return new Date(from.getTime() + CONTINUOUS_MIN_GAP_MS);
+    const nextRun = new Date(from.getTime() + CONTINUOUS_MIN_GAP_MS);
+    if (!schedule.stopAt) return nextRun;
+
+    const stopAt = new Date(schedule.stopAt);
+    if (Number.isNaN(stopAt.getTime())) {
+      throw new Error("Continuous stop time must be a valid date.");
+    }
+
+    return nextRun > stopAt ? null : nextRun;
   }
 
   const job = new Cron(schedule.expression, { paused: true });
@@ -52,7 +60,9 @@ export function describeSchedule(schedule: TaskSchedule): string {
   if (schedule.type === "interval") return `every ${schedule.everyMinutes} min`;
   if (schedule.type === "daily") return `daily at ${schedule.time}`;
   if (schedule.type === "weekly") return `weekly on day ${schedule.dayOfWeek} at ${schedule.time}`;
-  if (schedule.type === "continuous") return "continuous";
+  if (schedule.type === "continuous") {
+    return schedule.stopAt ? `continuous until ${schedule.stopAt}` : "continuous";
+  }
   return `cron ${schedule.expression}`;
 }
 

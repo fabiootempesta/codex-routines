@@ -61,4 +61,22 @@ describe("getNextRunAt", () => {
 
     expect(nextRun?.toISOString()).toBe("2026-05-16T19:00:03.000Z");
   });
+
+  it("does not schedule continuous runs after the configured stop time", () => {
+    const nextRun = getNextRunAt(
+      { type: "continuous", stopAt: "2026-05-16T19:00:02.000Z" },
+      new Date("2026-05-16T19:00:00.000Z")
+    );
+
+    expect(nextRun).toBeNull();
+  });
+
+  it("keeps scheduling continuous runs while the next run is before the stop time", () => {
+    const nextRun = getNextRunAt(
+      { type: "continuous", stopAt: "2026-05-16T19:01:00.000Z" },
+      new Date("2026-05-16T19:00:00.000Z")
+    );
+
+    expect(nextRun?.toISOString()).toBe("2026-05-16T19:00:03.000Z");
+  });
 });

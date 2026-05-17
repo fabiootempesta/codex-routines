@@ -30,6 +30,7 @@ export type CronSchedule = {
 
 export type ContinuousSchedule = {
   type: "continuous";
+  stopAt?: string | null;
 };
 
 export type TaskSchedule =
@@ -80,7 +81,7 @@ export type Task = {
 
 export type ExecutionStatus = "running" | "success" | "failed" | "stale" | "cancelled";
 
-export type ExecutionTrigger = "manual" | "scheduled" | "resume";
+export type ExecutionTrigger = "manual" | "scheduled" | "resume" | "message";
 
 export type Execution = {
   id: string;

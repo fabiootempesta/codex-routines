@@ -12,21 +12,29 @@ import {
 import ReactMarkdown from "react-markdown";
 import {
   AlertTriangle,
+  Braces,
+  Calendar,
+  CalendarDays,
   Check,
+  Clock,
   Copy,
   FileText,
   Folder,
+  Infinity as InfinityIcon,
   Loader2,
   Play,
   Plus,
+  Repeat,
   RotateCcw,
   Save,
   Search,
+  Send,
   Square,
   Trash2,
   X,
   Zap
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Cron } from "croner";
 import {
   findRunningExecution,
@@ -78,6 +86,7 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [filter, setFilter] = useState("");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -351,6 +360,30 @@ export default function App() {
       setError(toMessage(requestError));
     } finally {
       setIsResuming(false);
+    }
+  }
+
+  async function sendExecutionMessage(executionId: string, message: string): Promise<void> {
+    setIsSendingMessage(true);
+    setError(null);
+    try {
+      const response = await api<{ execution: ExecutionSummary }>(
+        `/api/executions/${executionId}/message`,
+        {
+          method: "POST",
+          body: JSON.stringify({ message })
+        }
+      );
+      setState((current) => ({
+        ...current,
+        executions: mergeExecutionIntoList(current.executions, response.execution)
+      }));
+      setOpenExecutionId(response.execution.id);
+      await refresh();
+    } catch (requestError) {
+      setError(toMessage(requestError));
+    } finally {
+      setIsSendingMessage(false);
     }
   }
 
@@ -676,7 +709,9 @@ export default function App() {
               </div>
               <div>
                 <span className="meta-label">Effort</span>
-                <span className="meta-value">{draft.effort ? effortLabel(draft.effort) : "Default"}</span>
+                <span className="meta-value">
+                  {effortLabel(draft.effort ?? DEFAULT_CODEX_EFFORT)}
+                </span>
               </div>
               <div>
                 <span className="meta-label">Path</span>
@@ -840,6 +875,8 @@ export default function App() {
           onClose={() => setOpenExecutionId(null)}
           onContinue={() => void continueExecution()}
           isResuming={isResuming}
+          onSendMessage={(message) => void sendExecutionMessage(openExecution.id, message)}
+          isSendingMessage={isSendingMessage}
           onCancel={() => void cancelExecution(openExecution.id)}
           isCancelling={isCancelling}
         />
@@ -995,14 +1032,14 @@ function Ribbon({ ticks, nextLabel }: { ticks: RibbonTick[]; nextLabel: string |
 
 /* ----------------------------- schedule builder ----------------------------- */
 
-const scheduleModes: Array<{ id: TaskSchedule["type"]; label: string; ico: string }> = [
-  { id: "manual", label: "Manual", ico: "⌘" },
-  { id: "continuous", label: "Continuous", ico: "∞" },
-  { id: "interval", label: "Interval", ico: "↻" },
-  { id: "daily", label: "Daily", ico: "☀" },
-  { id: "weekly", label: "Weekly", ico: "▦" },
-  { id: "once", label: "Once", ico: "•" },
-  { id: "cron", label: "Cron", ico: "{ }" }
+const scheduleModes: Array<{ id: TaskSchedule["type"]; label: string; Icon: LucideIcon }> = [
+  { id: "manual", label: "Manual", Icon: Play },
+  { id: "continuous", label: "Continuous", Icon: InfinityIcon },
+  { id: "interval", label: "Interval", Icon: Repeat },
+  { id: "daily", label: "Daily", Icon: Calendar },
+  { id: "weekly", label: "Weekly", Icon: CalendarDays },
+  { id: "once", label: "Once", Icon: Clock },
+  { id: "cron", label: "Cron", Icon: Braces }
 ];
 
 function ScheduleBuilder(props: {
@@ -1025,8 +1062,8 @@ function ScheduleBuilder(props: {
             className={schedule.type === mode.id ? "active" : ""}
             onClick={() => onChange(defaultSchedule(mode.id))}
           >
-            <span className="ico">{mode.ico}</span>
-            {mode.label}
+            <mode.Icon className="sched-icon" size={14} />
+            <span className="sched-label">{mode.label}</span>
           </button>
         ))}
       </div>
@@ -1039,9 +1076,34 @@ function ScheduleBuilder(props: {
             </span>
           )}
           {schedule.type === "continuous" && (
-            <span className="phrase">
-              <span className="accent">forever</span> — the next run starts as soon as the current one finishes.
-            </span>
+            <>
+              <span className="accent">after each finish</span>
+              <span className="phrase">until</span>
+              <span className="phrase-pill stop-pill">
+                <input
+                  type="datetime-local"
+                  aria-label="Continuous stop time"
+                  value={schedule.stopAt ?? ""}
+                  onChange={(e) =>
+                    onChange({
+                      type: "continuous",
+                      stopAt: e.target.value || null
+                    })
+                  }
+                />
+                {schedule.stopAt ? (
+                  <button
+                    type="button"
+                    className="pill-clear"
+                    onClick={() => onChange({ type: "continuous", stopAt: null })}
+                  >
+                    Clear
+                  </button>
+                ) : (
+                  <span style={{ color: "var(--muted)" }}>no stop time</span>
+                )}
+              </span>
+            </>
           )}
           {schedule.type === "interval" && (
             <>
@@ -1156,8 +1218,7 @@ const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 /* ----------------------------- effort picker ----------------------------- */
 
 function EffortPicker(props: { value: CodexEffort; onChange: (value: CodexEffort) => void }) {
-  const opts: Array<{ id: CodexEffort; label: string; bars: number }> = [
-    { id: null, label: "Default", bars: 0 },
+  const opts: Array<{ id: Exclude<CodexEffort, null>; label: string; bars: number }> = [
     { id: "low", label: "Low", bars: 1 },
     { id: "medium", label: "Medium", bars: 2 },
     { id: "high", label: "High", bars: 3 },
@@ -1188,10 +1249,7 @@ function EffortPicker(props: { value: CodexEffort; onChange: (value: CodexEffort
 /* ----------------------------- model picker ----------------------------- */
 
 function ModelPicker(props: { value: CodexModel; onChange: (value: CodexModel) => void }) {
-  const opts: Array<{ id: CodexModel; label: string }> = [
-    { id: null, label: "Default" },
-    ...codexModelOptions
-  ];
+  const opts: Array<{ id: Exclude<CodexModel, null>; label: string }> = codexModelOptions;
   return (
     <div className="model-row">
       {opts.map((o) => (
@@ -1265,8 +1323,8 @@ type LogPane = {
   error: string | null;
 };
 
-const INITIAL_LOG_TAIL = 64 * 1024;
-const LOAD_EARLIER_CHUNK = 64 * 1024;
+const INITIAL_LOG_TAIL = 24 * 1024;
+const LOAD_EARLIER_CHUNK = 32 * 1024;
 const SCROLL_STICK_THRESHOLD_PX = 32;
 
 function emptyLogPane(): LogPane {
@@ -1279,12 +1337,26 @@ function ExecutionModal(props: {
   onClose: () => void;
   onContinue: () => void;
   isResuming: boolean;
+  onSendMessage: (message: string) => void;
+  isSendingMessage: boolean;
   onCancel: () => void;
   isCancelling: boolean;
 }) {
-  const { execution, taskTitle, onClose, onContinue, isResuming, onCancel, isCancelling } = props;
+  const {
+    execution,
+    taskTitle,
+    onClose,
+    onContinue,
+    isResuming,
+    onSendMessage,
+    isSendingMessage,
+    onCancel,
+    isCancelling
+  } = props;
   const continuable = isContinuableExecution(execution);
   const isRunning = execution.status === "running";
+  const canSendMessage = Boolean(execution.resumeSessionId) && !isRunning;
+  const [messageDraft, setMessageDraft] = useState("");
   const [stdoutPane, setStdoutPane] = useState<LogPane>(emptyLogPane);
   const [stderrPane, setStderrPane] = useState<LogPane>(emptyLogPane);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
@@ -1466,6 +1538,14 @@ function ExecutionModal(props: {
     }
   }
 
+  function submitMessage(event: FormEvent): void {
+    event.preventDefault();
+    const message = messageDraft.trim();
+    if (!message || !canSendMessage || isSendingMessage) return;
+    onSendMessage(message);
+    setMessageDraft("");
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -1532,6 +1612,29 @@ function ExecutionModal(props: {
             </div>
           </div>
         )}
+        <form className="message-panel" onSubmit={submitMessage}>
+          <textarea
+            value={messageDraft}
+            onChange={(event) => setMessageDraft(event.target.value)}
+            placeholder={
+              isRunning
+                ? "Wait for this run to finish before sending a follow-up."
+                : execution.resumeSessionId
+                  ? "Send a follow-up prompt to this session..."
+                  : "No Codex session id was found for this run."
+            }
+            disabled={!canSendMessage || isSendingMessage}
+            rows={3}
+          />
+          <button
+            className="btn primary"
+            type="submit"
+            disabled={!messageDraft.trim() || !canSendMessage || isSendingMessage}
+          >
+            {isSendingMessage ? <Loader2 size={14} className="btn-spinner" /> : <Send size={14} />}
+            Send
+          </button>
+        </form>
         <pre className="modal-output" ref={outputRef} onScroll={trackScroll}>
           {renderExecutionOutput({
             execution,
@@ -1552,13 +1655,14 @@ function renderExecutionOutput(args: {
   onLoadEarlier: (stream: OutputStream) => void;
 }): ReactNode {
   const { execution, stdoutPane, stderrPane, onLoadEarlier } = args;
+  const visibleStderrPane = {
+    ...stderrPane,
+    content: hideCodexInternalLogLines(stderrPane.content)
+  };
+  const hasVisibleStderr = visibleStderrPane.content.trim().length > 0;
   return (
     <>
-      <span className="l-cmd">$ {execution.command.join(" ")}</span>
-      {"\n"}
-      <span className="l-dim">cwd: {execution.cwd}</span>
-      {"\n\n"}
-      <span className="l-section">[stdout]</span>
+      <span className="l-section">[output]</span>
       {"\n"}
       {renderLogPane({
         pane: stdoutPane,
@@ -1566,16 +1670,16 @@ function renderExecutionOutput(args: {
         emptyHint:
           execution.status === "running" ? "waiting for codex output..." : "(empty)",
         onLoadEarlier: () => onLoadEarlier("stdout"),
-        toneClass: null
-      })}
-      {(stderrPane.content || execution.stderrSize > 0) && (
+          toneClass: null
+        })}
+      {hasVisibleStderr && (
         <>
           {"\n\n"}
           <span className="l-section">[stderr]</span>
           {"\n"}
           {renderLogPane({
-            pane: stderrPane,
-            totalSize: execution.stderrSize,
+            pane: visibleStderrPane,
+            totalSize: visibleStderrPane.content.length,
             emptyHint: "(empty)",
             onLoadEarlier: () => onLoadEarlier("stderr"),
             toneClass: "l-warn"
@@ -1592,6 +1696,14 @@ function renderExecutionOutput(args: {
       )}
     </>
   );
+}
+
+function hideCodexInternalLogLines(content: string): string {
+  return content
+    .split("\n")
+    .filter((line) => !/^\s*(session id|workdir):/i.test(line))
+    .join("\n")
+    .trim();
 }
 
 function renderLogPane(args: {
@@ -1687,8 +1799,8 @@ function taskToDraft(task: Task): DraftTask {
     prompt: task.prompt,
     cwd: task.cwd,
     enabled: task.enabled,
-    effort: task.effort ?? null,
-    model: task.model ?? null,
+    effort: task.effort ?? DEFAULT_CODEX_EFFORT,
+    model: task.model ?? DEFAULT_CODEX_MODEL,
     schedule: task.schedule
   };
 }
@@ -1699,7 +1811,7 @@ function defaultSchedule(type: TaskSchedule["type"]): TaskSchedule {
   if (type === "daily") return { type, time: "09:00" };
   if (type === "weekly") return { type, dayOfWeek: 1, time: "09:00" };
   if (type === "once") return { type, runAt: toDatetimeLocal(new Date(Date.now() + 60 * 60_000)) };
-  if (type === "continuous") return { type };
+  if (type === "continuous") return { type, stopAt: null };
   return { type, expression: "0 9 * * *" };
 }
 
@@ -1710,14 +1822,14 @@ function normalizeDraft(draft: DraftTask): CreateTaskInput {
     cwd: draft.cwd,
     schedule: draft.schedule,
     enabled: draft.enabled,
-    effort: draft.effort ?? null,
-    model: draft.model ?? null
+    effort: draft.effort ?? DEFAULT_CODEX_EFFORT,
+    model: draft.model ?? DEFAULT_CODEX_MODEL
   };
 }
 
 function modelLabel(model: CodexModel): string {
-  if (!model) return "Default";
-  return codexModelOptions.find((option) => option.id === model)?.label ?? model;
+  const resolved = model ?? DEFAULT_CODEX_MODEL;
+  return codexModelOptions.find((option) => option.id === resolved)?.label ?? resolved;
 }
 
 function effortLabel(effort: Exclude<CodexEffort, null>): string {
@@ -1734,7 +1846,7 @@ function shortSchedule(schedule: TaskSchedule): string {
     case "manual":
       return "Manual";
     case "continuous":
-      return "Continuous";
+      return schedule.stopAt ? `Continuous until ${formatDateTime(schedule.stopAt)}` : "Continuous";
     case "interval":
       return `Every ${schedule.everyMinutes}m`;
     case "daily":
@@ -1872,7 +1984,10 @@ function nextRunsForTask(task: Task, count: number): Date[] {
   const now = Date.now();
   const schedule = task.schedule;
   if (schedule.type === "manual") return items;
-  if (schedule.type === "continuous") return items;
+  if (schedule.type === "continuous") {
+    if (task.nextRunAt) items.push(new Date(task.nextRunAt));
+    return items;
+  }
   if (schedule.type === "once") {
     const d = new Date(schedule.runAt);
     if (d.getTime() > now) items.push(d);

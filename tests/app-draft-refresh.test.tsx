@@ -46,6 +46,17 @@ describe("App draft refresh behavior", () => {
 
     expect(nameInput.value).toBe("Unsaved local title");
   });
+
+  it("does not show Default as a selectable model or effort option", async () => {
+    vi.useFakeTimers();
+    mockApi();
+
+    render(<App />);
+
+    await flushPromises();
+
+    expect(screen.queryByRole("button", { name: "Default" })).toBeNull();
+  });
 });
 
 function mockApi() {
